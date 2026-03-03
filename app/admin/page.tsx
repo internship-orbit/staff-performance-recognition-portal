@@ -4,13 +4,19 @@ import { useEffect, useState } from "react"
 import { supabase } from "../../lib/supabaseClient"
 import { useRouter } from "next/navigation"
 import StatsCard from "./components/statscard"
+import Header from "./components/header"
 import QuickActions from "./components/quickactions"
 import { Users, FileCheck, AlertCircle, Activity } from "lucide-react"
 
 export default function AdminPage() {
+  const router = useRouter()
+
   const [pegawai, setPegawai] = useState<any[]>([])
   const [ckpData, setCkpData] = useState<any[]>([])
-  const router = useRouter()
+  const [nominasi, setNominasi] = useState<any[]>([])
+  const [juriDone, setJuriDone] = useState(0)
+  const [juriTotal, setJuriTotal] = useState(0)
+  const [nominasiFinal, setNominasiFinal] = useState<any[]>([])
 
   useEffect(() => {
     loadData()
@@ -19,19 +25,21 @@ export default function AdminPage() {
   async function loadData() {
     await getPegawai()
     await getCKP()
+    await getMonitoringJuri()
+    await getNominasiPerTim()
   }
 
   async function getPegawai() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("pegawai")
       .select("*")
       .order("nama")
 
-    if (!error) setPegawai(data || [])
+    setPegawai(data || [])
   }
 
   async function getCKP() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("ckp")
       .select(`
         id,
@@ -45,99 +53,178 @@ export default function AdminPage() {
       `)
       .order("created_at", { ascending: false })
 
-    if (!error) setCkpData(data || [])
+    setCkpData(data || [])
+  }
+
+  async function getMonitoringJuri() {
+    const { data } = await supabase
+      .from("penilaian")
+      .select("status")
+
+    if (data) {
+      const done = data.filter((d) => d.status === "done").length
+      setJuriDone(done)
+      setJuriTotal(data.length)
+    }
+  }
+
+  async function getNominasiPerTim() {
+    const { data } = await supabase
+      .from("nilai_final")
+      .select(`
+        total_nilai,
+        pegawai (
+          id,
+          nama,
+          tim
+        )
+      `)
+      .order("total_nilai", { ascending: false })
+
+    if (!data) return
+
+    const bestPerTim: any = {}
+
+    data.forEach((item: any) => {
+      const tim = item.pegawai.tim
+      if (!bestPerTim[tim]) {
+        bestPerTim[tim] = item
+      }
+    })
+
+    setNominasi(Object.values(bestPerTim))
+  }
+
+  function handleSetFinal(item: any) {
+    if (!nominasiFinal.find((n) => n.pegawai.id === item.pegawai.id)) {
+      setNominasiFinal([...nominasiFinal, item])
+    }
+  }
+
+  function handleRemoveFinal(id: string) {
+    setNominasiFinal(
+      nominasiFinal.filter((n) => n.pegawai.id !== id)
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-10">
+      <div className="min-h-screen bg-[#0f1c3f] p-8 space-y-8 text-blue-100">
+      <Header
+        title="ORBIT Admin Board"
+        subtitle="Manage. Evaluate. Recognize."
+      />
 
-      {/* HEADER */}
-      <div className="bg-white p-6 rounded-xl shadow mb-8">
-        <h1 className="text-3xl font-bold">Dashboard Admin</h1>
-        <p className="text-gray-500">
-          Sistem Pemilihan Pegawai Teladan
-        </p>
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
-      {/* STATS SECTION */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-
-        <StatsCard 
+        <StatsCard
           title="Total Pegawai"
           value={pegawai.length}
           subtitle="Data terdaftar"
-          icon={<Users className="text-indigo-600" size={22} />}
-          color="text-indigo-600"
+          icon={<Users className="text-cyan-400" size={22} />}
+          color="text-cyan-400"
         />
 
-        <StatsCard 
+        <StatsCard
           title="Total Data CKP"
           value={ckpData.length}
           subtitle="Sudah diinput"
-          icon={<FileCheck className="text-green-600" size={22} />}
-          color="text-green-600"
+          icon={<FileCheck className="text-green-400" size={22} />}
+          color="text-green-400"
         />
 
-        <StatsCard 
+        <StatsCard
           title="Belum Dinilai"
           value={pegawai.length - ckpData.length}
           subtitle="Perlu input"
-          icon={<AlertCircle className="text-orange-500" size={22} />}
-          color="text-orange-500"
+          icon={<AlertCircle className="text-orange-400" size={22} />}
+          color="text-orange-400"
         />
 
-        <StatsCard 
-          title="Status Sistem"
-          value="Aktif"
-          subtitle="Semua layanan berjalan"
-          icon={<Activity className="text-emerald-600" size={22} />}
-          color="text-emerald-600"
+        <StatsCard
+          title="Monitoring Penilaian Juri"
+          value={
+            juriTotal > 0 && juriDone === juriTotal ? (
+              <span className="text-green-400 font-bold text-lg">
+                DONE
+              </span>
+            ) : (
+              <span className="text-orange-400 font-bold text-lg">
+                IN PROGRESS
+              </span>
+            )
+          }
+          subtitle="Status Evaluasi"
+          icon={<Activity className="text-purple-400" size={22} />}
+          color="text-purple-400"
         />
 
       </div>
-        <QuickActions />
-        
-      {/* MAIN GRID SECTION */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-        {/* LIST PEGAWAI */}
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h2 className="text-xl font-bold mb-4">Daftar Pegawai</h2>
+      <QuickActions />
 
-          {pegawai.map((p) => (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <div className="bg-linear-to-br from-[#1a2f6d] to-[#142657] border border-cyan-400/20 rounded-2xl shadow-lg p-6 backdrop-blur-xl">
+          <h2 className="text-xl font-bold mb-6 text-cyan-300">
+            Nominasi Per Tim
+          </h2>
+
+          {nominasi.map((n: any) => (
             <div
-              key={p.id}
-              className="flex justify-between items-center border-b py-2"
+              key={n.pegawai.id}
+              className="mb-6 p-4 bg-[#1c356f] rounded-xl border border-cyan-300/10"
             >
-              <span>{p.nama}</span>
-              <button
-                onClick={() => router.push(`/admin/ckp/${p.id}`)}
-                className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded"
-              >
-                Input CKP
-              </button>
+              <h3 className="font-bold text-cyan-200 uppercase">
+                {n.pegawai.tim}
+              </h3>
+
+              <p className="text-lg font-semibold mt-2 text-white">
+                {n.pegawai.nama}
+              </p>
+
+              <p className="text-sm text-blue-200 mb-3">
+                Total Nilai: {n.total_nilai}
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleSetFinal(n)}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded-lg"
+                >
+                  OKE
+                </button>
+
+                <button
+                  onClick={() => handleRemoveFinal(n.pegawai.id)}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-lg"
+                >
+                  TIDAK
+                </button>
+              </div>
             </div>
           ))}
         </div>
 
-        {/* DATA CKP */}
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h2 className="text-xl font-bold mb-4">
-            Data CKP Yang Sudah Diinput
+        <div className="bg-linear-to-br from-[#1a2f6d] to-[#142657] border border-cyan-400/20 rounded-2xl shadow-lg p-6 backdrop-blur-xl">
+          <h2 className="text-xl font-bold mb-6 text-cyan-300">
+            Nominasi Final
           </h2>
 
-          {ckpData.length === 0 && (
-            <p className="text-gray-500">Belum ada data CKP</p>
-          )}
+          {nominasiFinal.map((n: any) => (
+            <div
+              key={n.pegawai.id}
+              className="mb-4 p-4 bg-green-900/30 rounded-xl border border-green-400/30"
+            >
+              <p className="font-bold text-green-300 uppercase">
+                {n.pegawai.tim}
+              </p>
 
-          {ckpData.map((c) => (
-            <div key={c.id} className="border-b py-3">
-              <p className="font-semibold">{c.pegawai?.nama}</p>
-              <p className="text-sm text-gray-600">
-                Kuantitas: {c.nilai_kuantitas} |{" "}
-                Kualitas: {c.nilai_kualitas} |{" "}
-                Waktu: {c.nilai_waktu} |{" "}
-                Biaya: {c.nilai_biaya}
+              <p className="text-lg font-semibold text-white">
+                {n.pegawai.nama}
+              </p>
+
+              <p className="text-sm text-blue-200">
+                Total Nilai: {n.total_nilai}
               </p>
             </div>
           ))}
