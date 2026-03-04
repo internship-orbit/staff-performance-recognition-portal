@@ -24,7 +24,9 @@ export default function UploadSertifikatPage() {
     setPegawai(data || [])
   }
 
-  async function handleUpload() {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+
     if (!file || !selectedPegawai) {
       alert("Lengkapi data terlebih dahulu")
       return
@@ -34,6 +36,7 @@ export default function UploadSertifikatPage() {
 
     const fileName = `${selectedPegawai}-${Date.now()}-${file.name}`
 
+    // Upload ke storage
     const { error: uploadError } = await supabase.storage
       .from("sertifikat")
       .upload(fileName, file)
@@ -44,22 +47,34 @@ export default function UploadSertifikatPage() {
       return
     }
 
+    // Ambil public URL
     const { data: publicUrlData } = supabase.storage
       .from("sertifikat")
       .getPublicUrl(fileName)
 
     const fileUrl = publicUrlData.publicUrl
 
-    await supabase.from("sertifikat").insert([
-      {
-        pegawai_id: selectedPegawai,
-        periode,
-        tahun,
-        file_url: fileUrl,
-      },
-    ])
+    // Insert ke tabel
+    const { error: insertError } = await supabase
+      .from("sertifikat")
+      .insert([
+        {
+          pegawai_id: selectedPegawai,
+          periode,
+          tahun,
+          file_url: fileUrl,
+        },
+      ])
 
-    alert("Sertifikat berhasil diupload")
+    if (insertError) {
+      alert("Gagal menyimpan data")
+      setLoading(false)
+      return
+    }
+
+    alert("Sertifikat berhasil disubmit")
+
+    // Reset form
     setFile(null)
     setSelectedPegawai("")
     setLoading(false)
@@ -74,12 +89,12 @@ export default function UploadSertifikatPage() {
           Upload Sertifikat
         </h1>
 
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
 
           <select
             value={selectedPegawai}
             onChange={(e) => setSelectedPegawai(e.target.value)}
-            className="w-full border rounded-lg px-4 py-2"
+            className="w-full border rounded-lg px-4 py-2 text-gray-600"
           >
             <option value="">Pilih Pegawai</option>
             {pegawai.map((p) => (
@@ -92,7 +107,7 @@ export default function UploadSertifikatPage() {
           <select
             value={periode}
             onChange={(e) => setPeriode(e.target.value)}
-            className="w-full border rounded-lg px-4 py-2"
+            className="w-full border rounded-lg px-4 py-2 text-gray-600"
           >
             <option>Triwulan 1</option>
             <option>Triwulan 2</option>
@@ -104,25 +119,26 @@ export default function UploadSertifikatPage() {
             type="number"
             value={tahun}
             onChange={(e) => setTahun(Number(e.target.value))}
-            className="w-full border rounded-lg px-4 py-2"
+            className="w-full border rounded-lg px-4 py-2 text-gray-600"
           />
 
           <input
             type="file"
             accept=".pdf,.jpg,.png"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="w-full border rounded-lg px-4 py-2"
+            className="w-full border rounded-lg px-4 py-2 text-gray-600"
           />
 
-          <button
-            onClick={handleUpload}
-            disabled={loading}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg"
-          >
-            {loading ? "Uploading..." : "Upload Sertifikat"}
-          </button>
-
-        </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg"
+            >
+              {loading ? "Submitting..." : "Submit"}
+            </button>
+          </div>
+        </form>
 
       </div>
 

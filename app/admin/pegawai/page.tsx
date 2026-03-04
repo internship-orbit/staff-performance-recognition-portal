@@ -84,7 +84,7 @@ export default function KelolaPegawaiPage() {
   })
 
   return (
-    <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
+    <div className="p-8 space-y-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
 
       {/* HEADER */}
       <div className="bg-linear-to-r from-indigo-500 to-purple-600 text-white rounded-2xl p-6 shadow-md">
@@ -95,7 +95,7 @@ export default function KelolaPegawaiPage() {
       </div>
 
       {/* FORM TAMBAH */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 border space-y-4">
+      <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-sm p-6 border border-gray-200 space-y-4">
         <h2 className="font-semibold text-indigo-600">Tambah Pegawai Baru</h2>
 
         <div className="grid md:grid-cols-3 gap-4">
@@ -104,13 +104,13 @@ export default function KelolaPegawaiPage() {
             placeholder="Nama Pegawai"
             value={namaBaru}
             onChange={(e) => setNamaBaru(e.target.value)}
-            className="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-400 outline-none"
+            className="border border-gray-300 rounded-lg px-4 py-2 text-gray-900 placeholder:text-gray-800 focus:ring-2 focus:ring-indigo-400 outline-none"
           />
 
           <select
             value={timBaru}
             onChange={(e) => setTimBaru(e.target.value)}
-            className="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-400 outline-none"
+            className="border border-gray-300 rounded-lg px-4 py-2 text-gray-800 focus:ring-2 focus:ring-indigo-400 outline-none"
           >
             {TIM_OPTIONS.filter((t) => t !== "Semua").map((tim) => (
               <option key={tim}>{tim}</option>
@@ -127,22 +127,22 @@ export default function KelolaPegawaiPage() {
       </div>
 
       {/* SEARCH & FILTER */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 border space-y-4">
-        <h2 className="font-semibold">Cari & Filter</h2>
+      <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-sm p-6 border border-gray-200 space-y-4">
+        <h2 className="font-semibold text-gray-800">Cari & Filter</h2>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-4 text-gray-600">
           <input
             type="text"
             placeholder="Search nama..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-400 outline-none"
+            className="border border-gray-300 rounded-lg px-4 py-2  text-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-purple-400 outline-none"
           />
 
           <select
             value={filterTim}
             onChange={(e) => setFilterTim(e.target.value)}
-            className="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-400 outline-none"
+            className="border border-gray-300 rounded-lg px-4 py-2 text-gray-400 focus:ring-2 focus:ring-purple-400 outline-none"
           >
             {TIM_OPTIONS.map((tim) => (
               <option key={tim}>{tim}</option>
@@ -152,9 +152,8 @@ export default function KelolaPegawaiPage() {
       </div>
 
       {/* DAFTAR PEGAWAI */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 border">
-        <h2 className="font-semibold mb-4">Daftar Pegawai</h2>
-
+      <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-sm p-6 border border-gray-200">
+        <h2 className="font-semibold text-gray-800 mb-4">Daftar Pegawai</h2>
         {filteredPegawai.length === 0 && (
           <p className="text-gray-500">Tidak ada data ditemukan</p>
         )}
@@ -170,7 +169,7 @@ export default function KelolaPegawaiPage() {
               className="flex justify-between items-center border-b py-3"
             >
               <div>
-                <p className="font-medium">{p.nama}</p>
+                <p className="font-medium text-gray-900">{p.nama}</p>
                 <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full">
                   {p.tim}
                 </span>
@@ -180,7 +179,7 @@ export default function KelolaPegawaiPage() {
                 <select
                   value={p.tim}
                   onChange={(e) => updateTim(p.id, e.target.value)}
-                  className="border rounded px-2 py-1"
+                  className="border border-gray-300 rounded px-2 py-1 text-gray-800"
                 >
                   {TIM_OPTIONS.filter((t) => t !== "Semua").map((tim) => (
                     <option key={tim}>{tim}</option>
