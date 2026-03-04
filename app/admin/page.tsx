@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "../../lib/supabaseClient"
-import { useRouter } from "next/navigation"
 import StatsCard from "./components/statscard"
 import Header from "./components/header"
 import QuickActions from "./components/quickactions"
 import { Users, FileCheck, AlertCircle, Activity } from "lucide-react"
 
 export default function AdminPage() {
-  const router = useRouter()
 
+  /* ================== STATE ================== */
   const [pegawai, setPegawai] = useState<any[]>([])
   const [ckpData, setCkpData] = useState<any[]>([])
   const [nominasi, setNominasi] = useState<any[]>([])
@@ -18,6 +17,7 @@ export default function AdminPage() {
   const [juriTotal, setJuriTotal] = useState(0)
   const [nominasiFinal, setNominasiFinal] = useState<any[]>([])
 
+  /* ================== LOAD DATA ================== */
   useEffect(() => {
     loadData()
   }, [])
@@ -47,9 +47,7 @@ export default function AdminPage() {
         nilai_kualitas,
         nilai_waktu,
         nilai_biaya,
-        pegawai (
-          nama
-        )
+        pegawai ( nama )
       `)
       .order("created_at", { ascending: false })
 
@@ -73,11 +71,7 @@ export default function AdminPage() {
       .from("nilai_final")
       .select(`
         total_nilai,
-        pegawai (
-          id,
-          nama,
-          tim
-        )
+        pegawai ( id, nama, tim )
       `)
       .order("total_nilai", { ascending: false })
 
@@ -87,14 +81,13 @@ export default function AdminPage() {
 
     data.forEach((item: any) => {
       const tim = item.pegawai.tim
-      if (!bestPerTim[tim]) {
-        bestPerTim[tim] = item
-      }
+      if (!bestPerTim[tim]) bestPerTim[tim] = item
     })
 
     setNominasi(Object.values(bestPerTim))
   }
 
+  /* ================== HANDLE FINAL ================== */
   function handleSetFinal(item: any) {
     if (!nominasiFinal.find((n) => n.pegawai.id === item.pegawai.id)) {
       setNominasiFinal([...nominasiFinal, item])
@@ -107,15 +100,44 @@ export default function AdminPage() {
     )
   }
 
+  /* ================== SUBMIT KE APPROVAL ================== */
+  async function handleSubmitFinal() {
+    if (nominasiFinal.length === 0) {
+      alert("Belum ada nominasi final")
+      return
+    }
+
+    const payload = nominasiFinal.map((item: any) => ({
+      pegawai_id: item.pegawai.id,
+      total_nilai: item.total_nilai,
+      status: "pending",
+    }))
+
+    const { error } = await supabase
+      .from("approval")
+      .insert(payload)
+
+    if (error) {
+      alert("Gagal submit ke approval")
+      console.error(error)
+      return
+    }
+
+    alert("Berhasil dikirim ke Approval")
+    setNominasiFinal([])
+  }
+
+  /* ================== UI ================== */
   return (
-      <div className="min-h-screen bg-[#0f1c3f] p-8 space-y-8 text-blue-100">
+    <div className="min-h-screen bg-[#0b1635] text-blue-100 space-y-8">
+
       <Header
-        title="ORBIT Admin Board"
+        title="Admin Board"
         subtitle="Manage. Evaluate. Recognize."
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
+      {/* ===== STATS ===== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatsCard
           title="Total Pegawai"
           value={pegawai.length}
@@ -123,7 +145,6 @@ export default function AdminPage() {
           icon={<Users className="text-cyan-400" size={22} />}
           color="text-cyan-400"
         />
-
         <StatsCard
           title="Total Data CKP"
           value={ckpData.length}
@@ -131,7 +152,6 @@ export default function AdminPage() {
           icon={<FileCheck className="text-green-400" size={22} />}
           color="text-green-400"
         />
-
         <StatsCard
           title="Belum Dinilai"
           value={pegawai.length - ckpData.length}
@@ -139,32 +159,26 @@ export default function AdminPage() {
           icon={<AlertCircle className="text-orange-400" size={22} />}
           color="text-orange-400"
         />
-
         <StatsCard
           title="Monitoring Penilaian Juri"
           value={
-            juriTotal > 0 && juriDone === juriTotal ? (
-              <span className="text-green-400 font-bold text-lg">
-                DONE
-              </span>
-            ) : (
-              <span className="text-orange-400 font-bold text-lg">
-                IN PROGRESS
-              </span>
-            )
+            juriTotal > 0 && juriDone === juriTotal
+              ? <span className="text-green-400 font-bold">DONE</span>
+              : <span className="text-xl font-bold text-orange-400 tracking-wide"> IN PROGRESS </span>
           }
           subtitle="Status Evaluasi"
           icon={<Activity className="text-purple-400" size={22} />}
           color="text-purple-400"
         />
-
       </div>
 
       <QuickActions />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* ===== NOMINASI SECTION ===== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        <div className="bg-linear-to-br from-[#1a2f6d] to-[#142657] border border-cyan-400/20 rounded-2xl shadow-lg p-6 backdrop-blur-xl">
+        {/* ----- NOMINASI PER TIM ----- */}
+        <div className="bg-[#1a2f6d]/80 backdrop-blur-xl border border-cyan-400/15 rounded-2xl shadow-lg p-6">
           <h2 className="text-xl font-bold mb-6 text-cyan-300">
             Nominasi Per Tim
           </h2>
@@ -186,17 +200,17 @@ export default function AdminPage() {
                 Total Nilai: {n.total_nilai}
               </p>
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => handleSetFinal(n)}
-                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded-lg"
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg transition"
                 >
                   OKE
                 </button>
 
                 <button
                   onClick={() => handleRemoveFinal(n.pegawai.id)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-lg"
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-lg transition"
                 >
                   TIDAK
                 </button>
@@ -205,29 +219,51 @@ export default function AdminPage() {
           ))}
         </div>
 
-        <div className="bg-linear-to-br from-[#1a2f6d] to-[#142657] border border-cyan-400/20 rounded-2xl shadow-lg p-6 backdrop-blur-xl">
-          <h2 className="text-xl font-bold mb-6 text-cyan-300">
-            Nominasi Final
-          </h2>
+        {/* ----- NOMINASI FINAL ----- */}
+        <div className="bg-[#1a2f6d]/80 backdrop-blur-xl border border-cyan-400/15 rounded-2xl shadow-lg p-6 flex flex-col justify-between">
 
-          {nominasiFinal.map((n: any) => (
-            <div
-              key={n.pegawai.id}
-              className="mb-4 p-4 bg-green-900/30 rounded-xl border border-green-400/30"
-            >
-              <p className="font-bold text-green-300 uppercase">
-                {n.pegawai.tim}
-              </p>
+          <div>
+            <h2 className="text-xl font-bold mb-6 text-cyan-300">
+              Nominasi Final
+            </h2>
 
-              <p className="text-lg font-semibold text-white">
-                {n.pegawai.nama}
+            {nominasiFinal.length === 0 && (
+              <p className="text-blue-300/60 text-sm">
+                Belum ada nominasi final
               </p>
+            )}
 
-              <p className="text-sm text-blue-200">
-                Total Nilai: {n.total_nilai}
-              </p>
+            {nominasiFinal.map((n: any) => (
+              <div
+                key={n.pegawai.id}
+                className="mb-4 p-4 bg-green-900/30 rounded-xl border border-green-400/30"
+              >
+                <p className="font-bold text-green-300 uppercase">
+                  {n.pegawai.tim}
+                </p>
+
+                <p className="text-lg font-semibold text-white">
+                  {n.pegawai.nama}
+                </p>
+
+                <p className="text-sm text-blue-200">
+                  Total Nilai: {n.total_nilai}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {nominasiFinal.length > 0 && (
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={handleSubmitFinal}
+                className="px-6 py-2 rounded-lg bg-linear-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:scale-105 transition shadow-lg"
+              >
+                Submit ke Approval
+              </button>
             </div>
-          ))}
+          )}
+
         </div>
 
       </div>

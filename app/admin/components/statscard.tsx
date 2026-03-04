@@ -11,26 +11,47 @@ export default function StatsCard({
   value,
   subtitle,
   icon,
-  color = "text-indigo-600"
+  color = "text-cyan-300"
 }: Props) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition flex justify-between items-center">
+    <div className="
+      bg-[#1a2f6d]/85
+      backdrop-blur-xl
+      border border-cyan-300/20
+      rounded-xl
+      shadow-lg
+      p-6
+      transition
+      flex justify-between items-center
+    ">
       
       <div>
-        <p className="text-gray-500 text-sm">{title}</p>
+        {/* TITLE */}
+        <p className="text-blue-100/90 text-sm tracking-wide font-medium">
+          {title}
+        </p>
+
+        {/* VALUE */}
         <h2 className={`text-3xl font-bold mt-2 ${color}`}>
           {value}
         </h2>
 
+        {/* SUBTITLE */}
         {subtitle && (
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-sm text-blue-200/80 mt-1">
             {subtitle}
           </p>
         )}
       </div>
 
+      {/* ICON */}
       {icon && (
-        <div className="bg-gray-100 p-3 rounded-lg">
+        <div className="
+          bg-[#243b74]
+          border border-cyan-300/15
+          p-3
+          rounded-lg
+        ">
           {icon}
         </div>
       )}

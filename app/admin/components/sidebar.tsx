@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   FileText,
@@ -12,98 +13,198 @@ import {
   History,
   ChevronDown,
   ChevronRight,
+  Menu,
+  X,
+  LogOut
 } from "lucide-react"
 
 export default function Sidebar() {
+  const pathname = usePathname()
   const [openCertificate, setOpenCertificate] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  function isActive(path: string) {
+    return pathname === path
+  }
 
   return (
-    <div className="w-64 min-h-screen bg-linear-to-b from-[#0f1c3f] to-[#132a5c] text-blue-100 p-6 fixed left-0 top-0 border-r border-cyan-400/10 shadow-[0_0_40px_rgba(0,198,255,0.08)]">
-
-      {/* LOGO */}
-      <div className="flex items-center gap-3 mb-10">
-        <div className="w-9 h-9 rounded-full bg-linear-to-br from-cyan-400 to-blue-600 shadow-[0_0_15px_rgba(0,198,255,0.6)]"></div>
-        <h2 className="text-xl font-bold tracking-widest text-cyan-300">
+    <>
+      {/* ================= MOBILE TOP BAR ================= */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-[#0b1635] border-b border-cyan-400/10 flex items-center px-4 z-50">
+        <button onClick={() => setMobileOpen(true)}>
+          <Menu className="text-cyan-400" />
+        </button>
+        <span className="ml-4 font-bold tracking-widest bg-linear-to-r from-cyan-400 via-white to-purple-400 bg-clip-text text-transparent">
           ORBIT
-        </h2>
+        </span>
       </div>
 
-      <nav className="space-y-3 text-sm">
+      {/* ================= OVERLAY ================= */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+        />
+      )}
 
-        {/* Dashboard */}
-        <Link href="/admin" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition-all">
-          <LayoutDashboard size={18} />
-          Dashboard
-        </Link>
+      {/* ================= SIDEBAR ================= */}
+      <div className={`
+        fixed top-0 left-0 h-screen
+        bg-linear-to-b from-[#0f1c3f] to-[#132a5c]
+        border-r border-cyan-400/10
+        shadow-[0_0_40px_rgba(0,198,255,0.08)]
+        flex flex-col
+        overflow-y-auto
+        transition-all duration-300
+        z-50
+        ${collapsed ? "w-20" : "w-64"}
+        ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}>
 
-        {/* Input Nilai Final */}
-        <Link href="/admin/input-nilai" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition-all">
-          <FileText size={18} />
-          Input Nilai Final
-        </Link>
-
-        {/* Upload Excel */}
-        <Link href="/admin/upload" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition-all">
-          <Upload size={18} />
-          Upload Excel
-        </Link>
-
-        {/* Kelola Pegawai */}
-        <Link href="/admin/pegawai" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition-all">
-          <Users size={18} />
-          Kelola Pegawai
-        </Link>
-
-        {/* Generate Laporan */}
-        <Link href="/admin/laporan" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition-all">
-          <FileText size={18} />
-          Generate Laporan
-        </Link>
-
-        {/* Penilaian Juri */}
-        <Link href="/admin/penilaian-juri" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition-all">
-          <Award size={18} />
-          Penilaian Juri
-        </Link>
-
-        {/* Sertifikat Dropdown */}
-        <div>
-          <button
-            onClick={() => setOpenCertificate(!openCertificate)}
-            className="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <Award size={18} />
-              Sertifikat
-            </div>
-            {openCertificate ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        {/* CLOSE MOBILE */}
+        <div className="lg:hidden flex justify-end p-4">
+          <button onClick={() => setMobileOpen(false)}>
+            <X className="text-cyan-400" />
           </button>
-
-          {openCertificate && (
-            <div className="ml-7 mt-2 space-y-2 text-blue-300">
-              <Link href="/admin/sertifikat/upload" className="block hover:text-cyan-300 transition">
-                Upload Sertifikat
-              </Link>
-              <Link href="/admin/sertifikat/lihat" className="block hover:text-cyan-300 transition">
-                Lihat Sertifikat
-              </Link>
-            </div>
-          )}
         </div>
 
-        {/* Approval */}
-        <Link href="/admin/approval" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition-all">
-          <CheckCircle size={18} />
-          Approval
-        </Link>
+        {/* ================= TOP LOGO ================= */}
+        <div className="flex flex-col items-center py-8 border-b border-cyan-400/10">
 
-        {/* Arsip / History */}
-        <Link href="/admin/history" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition-all">
-          <History size={18} />
-          Arsip / History
-        </Link>
+          {/* Orbit Graphic */}
+          <div className="relative w-25 h-25 mb-4">
 
-      </nav>
-    </div>
+            <div className="absolute top-1/2 left-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-purple-500/20 border-l-purple-500 animate-[spin_7s_linear_infinite]" />
+
+            <div className="absolute top-1/2 left-1/2 w-18 h-18 -translate-x-1/2 -translate-y-1/2 rounded-full border border-orange-400/30 border-r-orange-400 animate-[spin_4.5s_linear_infinite_reverse]" />
+
+            <div className="absolute top-1/2 left-1/2 w-12.5 h-12.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/40 border-t-cyan-400 animate-[spin_2.5s_linear_infinite]" />
+
+            <div className="absolute top-1/2 left-1/2 w-7 h-7 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_35%_35%,#7ee8fa,#0e3b5c)] shadow-[0_0_15px_#00c6ffaa]" />
+
+          </div>
+
+          {!collapsed && (
+            <>
+              <h1 className="
+                text-[28px]
+                font-black
+                tracking-[8px]
+                bg-linear-to-r
+                from-cyan-400
+                via-white
+                to-purple-500
+                bg-clip-text
+                text-transparent
+                font-['Orbitron']
+              ">
+                ORBIT
+              </h1>
+
+              <div className="h-px w-30 bg-linear-to-r from-transparent via-cyan-400 to-transparent mt-2" />
+
+              <p className="text-[10px] tracking-widest text-blue-300/50 mt-3 text-center leading-relaxed">
+                Outstanding Recognition <br />
+                & Benchmarking Tool
+              </p>
+            </>
+          )}
+
+        </div>
+
+        {/* ================= MENU ================= */}
+        <nav className="flex-1 px-3 py-6 space-y-2 text-sm">
+
+          {menuItem("/admin", "Dashboard", <LayoutDashboard size={18} />, collapsed, isActive)}
+          {menuItem("/admin/input-nilai", "Input Nilai Final", <FileText size={18} />, collapsed, isActive)}
+          {menuItem("/admin/upload", "Upload Excel", <Upload size={18} />, collapsed, isActive)}
+          {menuItem("/admin/pegawai", "Kelola Pegawai", <Users size={18} />, collapsed, isActive)}
+          {menuItem("/admin/laporan", "Generate Laporan", <FileText size={18} />, collapsed, isActive)}
+          {menuItem("/admin/penilaian-juri", "Penilaian Juri", <Award size={18} />, collapsed, isActive)}
+
+          {/* Dropdown Sertifikat */}
+          <div>
+            <button
+              onClick={() => setOpenCertificate(!openCertificate)}
+              className="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition"
+            >
+              <div className="flex items-center gap-3">
+                <Award size={18} />
+                {!collapsed && "Sertifikat"}
+              </div>
+              {!collapsed && (openCertificate ? <ChevronDown size={16} /> : <ChevronRight size={16} />)}
+            </button>
+
+            {openCertificate && !collapsed && (
+              <div className="ml-7 mt-2 space-y-2 text-blue-300">
+                <Link href="/admin/sertifikat/upload" className="block hover:text-cyan-300 transition">
+                  Upload Sertifikat
+                </Link>
+                <Link href="/admin/sertifikat/lihat" className="block hover:text-cyan-300 transition">
+                  Lihat Sertifikat
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {menuItem("/admin/approval", "Approval", <CheckCircle size={18} />, collapsed, isActive)}
+          {menuItem("/admin/history", "Arsip / History", <History size={18} />, collapsed, isActive)}
+
+        </nav>
+
+        {/* ================= PROFILE ================= */}
+        <div className="px-3 py-4 border-t border-cyan-400/10">
+
+          <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-500/10 transition cursor-pointer">
+
+            <div className="w-9 h-9 rounded-full bg-linear-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-xs font-bold shadow-[0_0_15px_rgba(0,198,255,0.4)]">
+              AD
+            </div>
+
+            {!collapsed && (
+              <>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-blue-200 truncate">
+                    Admin
+                  </p>
+                  <p className="text-[10px] tracking-wider text-blue-400/60 uppercase">
+                    Administrator
+                  </p>
+                </div>
+                <LogOut size={16} className="text-blue-400/50 hover:text-cyan-300 transition" />
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="hidden lg:block mt-4 w-full text-xs text-cyan-400/60 hover:text-cyan-300 transition"
+          >
+            {collapsed ? "Expand" : "Collapse"}
+          </button>
+
+        </div>
+
+      </div>
+    </>
+  )
+}
+
+/* ================= HELPER ================= */
+function menuItem(path: string, label: string, icon: any, collapsed: boolean, isActive: any) {
+  return (
+    <Link
+      href={path}
+      className={`
+        flex items-center gap-3 px-3 py-2 rounded-lg transition-all
+        ${isActive(path)
+          ? "bg-cyan-500/15 text-cyan-300 border border-cyan-400/20"
+          : "hover:bg-cyan-500/10 hover:text-cyan-300"}
+      `}
+    >
+      {icon}
+      {!collapsed && label}
+    </Link>
   )
 }

@@ -6,25 +6,25 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-[#0b1635]">
 
       {/* SIDEBAR */}
       <Sidebar />
 
-      {/* MAIN CONTENT */}
-      <div className="flex-1 ml-64">
+      {/* MAIN */}
+      <div className="flex-1 lg:ml-64">
 
-        {/* BATASI SEMUA CONTENT TERMASUK HEADER */}
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
-
-          <div className="mt-8">
-            {children}
-          </div>
-
+        <div className="
+          w-full
+          max-w-7xl
+          mx-auto
+          px-4 sm:px-6 lg:px-8
+          py-6 sm:py-8
+        ">
+          {children}
         </div>
 
       </div>
-
     </div>
   )
 }
