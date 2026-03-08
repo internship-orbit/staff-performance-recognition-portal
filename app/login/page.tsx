@@ -5,49 +5,119 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabaseClient"
 
 export default function LoginPage() {
+
   const router = useRouter()
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
 
   async function handleLogin(e: any) {
+
     e.preventDefault()
+
     setLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({
+    /* ================= LOGIN ================= */
+
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password,
+      password
     })
 
     if (error) {
+
       alert("Login gagal: " + error.message)
+
+      setLoading(false)
+
+      return
+
+    }
+
+    const user = data.user
+
+    if (!user) {
+      alert("User tidak ditemukan")
       setLoading(false)
       return
     }
 
-    router.push("/admin")
+    /* ================= AMBIL ROLE USER ================= */
+
+    const { data: profile, error: profileError } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single()
+
+    if (profileError || !profile) {
+
+      alert("Role user tidak ditemukan")
+
+      setLoading(false)
+
+      return
+
+    }
+
+    const role = profile.role
+
+    /* ================= REDIRECT BERDASARKAN ROLE ================= */
+
+    if (role === "admin") {
+
+      router.push("/admin")
+
+    } else if (role === "juri") {
+
+      router.push("/juri")
+
+    } else if (role === "verifikator") {
+
+      router.push("/verifikator")
+
+    } else {
+
+      router.push("/")
+
+    }
+
   }
 
   return (
+
     <div className="cosmic-wrapper">
+
       <div className="cosmic-bg"></div>
 
       <div className="cosmic-card">
+
         <div className="c-logo-wrap">
+
           <div className="c-orbit-graphic">
+
             <div className="c-planet"></div>
             <div className="c-ring c-ring-1"></div>
             <div className="c-ring c-ring-2"></div>
             <div className="c-ring c-ring-3"></div>
+
           </div>
 
           <h1 className="c-title">ORBIT</h1>
+
           <div className="c-divider"></div>
-          <p className="c-sub">Outstanding Recognition & Benchmarking Tool</p>
+
+          <p className="c-sub">
+            Outstanding Recognition & Benchmarking Tool
+          </p>
+
         </div>
 
         <form onSubmit={handleLogin}>
+
           <label className="c-label">Email</label>
+
           <input
             type="email"
             placeholder="Enter your email"
@@ -57,6 +127,7 @@ export default function LoginPage() {
           />
 
           <label className="c-label">Password</label>
+
           <input
             type="password"
             placeholder="Enter your password"
@@ -66,12 +137,18 @@ export default function LoginPage() {
           />
 
           <button type="submit" className="c-btn">
+
             {loading ? "LOGGING IN..." : "LOGIN"}
+
           </button>
+
         </form>
+
       </div>
 
+
       <style jsx global>{`
+
         body {
           margin: 0;
           background: #03010d;
@@ -124,6 +201,7 @@ export default function LoginPage() {
           z-index: -1;
           filter: blur(8px);
         }
+
         .c-logo-wrap {
           text-align: center;
           margin-bottom: 30px;
@@ -248,7 +326,11 @@ export default function LoginPage() {
           box-shadow: 0 0 25px #00c6ff55;
           transform: translateY(-1px);
         }
+
       `}</style>
+
     </div>
+
   )
+
 }
