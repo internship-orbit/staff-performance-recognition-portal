@@ -109,21 +109,21 @@ export default function AdminPage() {
 
     const payload = nominasiFinal.map((item: any) => ({
       pegawai_id: item.pegawai.id,
-      total_nilai: item.total_nilai,
-      status: "pending",
+      tim: item.pegawai.tim,
+      total_nilai: item.total_nilai
     }))
 
     const { error } = await supabase
-      .from("approval")
+      .from("nominasi_final")
       .insert(payload)
 
     if (error) {
       alert("Gagal submit ke approval")
-      console.error(error)
+      console.error("Submit error:", error)
       return
     }
 
-    alert("Berhasil dikirim ke Approval")
+    alert("Berhasil dikirim ke Penilaian Juri")
     setNominasiFinal([])
   }
 
