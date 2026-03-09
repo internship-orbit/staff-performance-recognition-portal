@@ -30,12 +30,15 @@ export default function AdminPage() {
     const date = new Date(dateString)
 
     return bulan[date.getMonth()]
+
   }
 
   /* ================= LOAD DATA ================= */
 
   useEffect(() => {
+
     loadData()
+
   }, [])
 
   async function loadData() {
@@ -51,10 +54,17 @@ export default function AdminPage() {
 
   async function getPegawai() {
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("pegawai")
       .select("*")
       .order("nama")
+
+    if (error) {
+
+      console.error("Error getPegawai:", error)
+      return
+
+    }
 
     setPegawai(data || [])
 
@@ -64,12 +74,19 @@ export default function AdminPage() {
 
   async function getCKP() {
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("ckp")
       .select(`
         id,
         pegawai ( nama )
       `)
+
+    if (error) {
+
+      console.error("Error getCKP:", error)
+      return
+
+    }
 
     setCkpData(data || [])
 
@@ -79,9 +96,16 @@ export default function AdminPage() {
 
   async function getMonitoringJuri() {
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("penilaian")
       .select("status")
+
+    if (error) {
+
+      console.error("Error getMonitoringJuri:", error)
+      return
+
+    }
 
     if (data) {
 
@@ -112,8 +136,10 @@ export default function AdminPage() {
       .order("total_nilai", { ascending: false })
 
     if (error) {
-      console.error(error)
+
+      console.error("Error getNominasiPerTim:", error)
       return
+
     }
 
     const grouped: any = {}
@@ -123,7 +149,11 @@ export default function AdminPage() {
       const tim = item.pegawai.tim
       const bulan = getNamaBulan(item.periode_bulan)
 
-      if (!grouped[tim]) grouped[tim] = {}
+      if (!grouped[tim]) {
+
+        grouped[tim] = {}
+
+      }
 
       if (!grouped[tim][bulan]) {
 
@@ -150,7 +180,6 @@ export default function AdminPage() {
     if (already) {
 
       alert("Tim ini sudah memiliki nominasi final")
-
       return
 
     }
@@ -174,7 +203,6 @@ export default function AdminPage() {
     if (nominasiFinal.length === 0) {
 
       alert("Belum ada nominasi final")
-
       return
 
     }
@@ -183,25 +211,23 @@ export default function AdminPage() {
 
       pegawai_id: item.pegawai.id,
       total_nilai: item.total_nilai,
-      status: "pending"
+      status: "pending",
 
     }))
 
     const { error } = await supabase
-      .from("penilaian")
+      .from("approval")
       .insert(payload)
 
     if (error) {
 
-      console.error(error)
-
-      alert("Gagal kirim ke juri")
-
+      console.error("Submit error:", error)
+      alert("Gagal mengirim data ke penilaian juri")
       return
 
     }
 
-    alert("Berhasil dikirim ke juri")
+    alert("Berhasil dikirim ke penilaian juri")
 
     setNominasiFinal([])
 
@@ -271,9 +297,7 @@ export default function AdminPage() {
         <div className="bg-[#1a2f6d]/80 backdrop-blur-xl border border-cyan-400/15 rounded-2xl shadow-lg p-6">
 
           <h2 className="text-xl font-bold mb-6 text-cyan-300">
-
             Daftar Nominasi Tim
-
           </h2>
 
           {Object.entries(nominasi).map(([tim, bulanData]: any) => (
@@ -284,9 +308,7 @@ export default function AdminPage() {
             >
 
               <h3 className="font-bold text-cyan-200 uppercase mb-4">
-
                 {tim}
-
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -299,21 +321,15 @@ export default function AdminPage() {
                   >
 
                     <p className="text-cyan-300 text-sm mb-1">
-
                       {bulan}
-
                     </p>
 
                     <p className="text-white font-semibold">
-
                       {data.pegawai.nama}
-
                     </p>
 
                     <p className="text-blue-200 text-sm mb-3">
-
                       Nilai: {data.total_nilai}
-
                     </p>
 
                     <div className="flex gap-2">
@@ -353,19 +369,13 @@ export default function AdminPage() {
           <div>
 
             <h2 className="text-xl font-bold mb-6 text-cyan-300">
-
               Nominasi Final
-
             </h2>
 
             {nominasiFinal.length === 0 && (
-
               <p className="text-blue-300/60 text-sm">
-
                 Belum ada nominasi final
-
               </p>
-
             )}
 
             {nominasiFinal.map((n: any) => (
@@ -376,21 +386,15 @@ export default function AdminPage() {
               >
 
                 <p className="font-bold text-green-300 uppercase">
-
                   {n.pegawai.tim}
-
                 </p>
 
                 <p className="text-lg font-semibold text-white">
-
                   {n.pegawai.nama}
-
                 </p>
 
                 <p className="text-sm text-blue-200">
-
                   Total Nilai: {n.total_nilai}
-
                 </p>
 
               </div>
@@ -407,9 +411,7 @@ export default function AdminPage() {
                 onClick={handleSubmitFinal}
                 className="px-6 py-2 rounded-lg bg-linear-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:scale-105 transition shadow-lg"
               >
-
                 Kirim ke Juri
-
               </button>
 
             </div>
