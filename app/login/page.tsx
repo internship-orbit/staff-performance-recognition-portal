@@ -15,7 +15,6 @@ export default function LoginPage() {
   async function handleLogin(e: any) {
 
     e.preventDefault()
-
     setLoading(true)
 
     /* ================= LOGIN ================= */
@@ -26,61 +25,40 @@ export default function LoginPage() {
     })
 
     if (error) {
-
       alert("Login gagal: " + error.message)
-
-      setLoading(false)
-
-      return
-
-    }
-
-    const user = data.user
-
-    if (!user) {
-      alert("User tidak ditemukan")
       setLoading(false)
       return
     }
 
-    /* ================= AMBIL ROLE USER ================= */
+    /* ================= AMBIL ROLE ================= */
 
     const { data: profile, error: profileError } = await supabase
       .from("users")
       .select("role")
-      .eq("id", user.id)
+      .eq("email", email)
       .single()
 
     if (profileError || !profile) {
-
       alert("Role user tidak ditemukan")
-
       setLoading(false)
-
       return
-
     }
 
     const role = profile.role
 
-    /* ================= REDIRECT BERDASARKAN ROLE ================= */
+    /* ================= REDIRECT ================= */
 
     if (role === "admin") {
-
       router.push("/admin")
-
-    } else if (role === "juri") {
-
+    } 
+    else if (role === "juri") {
       router.push("/juri")
-
-    } else if (role === "verifikator") {
-
+    } 
+    else if (role === "verifikator") {
       router.push("/verifikator")
-
-    } else {
-
+    } 
+    else {
       router.push("/")
-
     }
 
   }
@@ -137,9 +115,7 @@ export default function LoginPage() {
           />
 
           <button type="submit" className="c-btn">
-
             {loading ? "LOGGING IN..." : "LOGIN"}
-
           </button>
 
         </form>
@@ -190,16 +166,6 @@ export default function LoginPage() {
             0 0 0 1px rgba(0, 198, 255, 0.05),
             0 0 60px rgba(0, 198, 255, 0.08),
             0 40px 80px rgba(0, 0, 0, 0.8);
-        }
-
-        .cosmic-card::before {
-          content: '';
-          position: absolute;
-          inset: -2px;
-          border-radius: 24px;
-          background: linear-gradient(135deg, #00c6ff22, transparent 40%, #a259ff22);
-          z-index: -1;
-          filter: blur(8px);
         }
 
         .c-logo-wrap {
