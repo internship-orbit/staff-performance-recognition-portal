@@ -151,6 +151,23 @@ export default function AdminPage() {
     setRanking(data || [])
   }
 
+  /* ================= SUBMIT RANKING ================= */
+
+  async function handleSubmitRanking(item:any){
+
+    const { error } = await supabase
+      .from("ranking_final")
+      .insert(item)
+
+    if(error){
+      console.error(error)
+      alert("Gagal submit ranking")
+      return
+    }
+
+    alert("Ranking berhasil dikirim")
+  }
+
   /* ================= NOMINASI FINAL ================= */
 
   function handleSetFinal(item:any){
@@ -176,28 +193,28 @@ export default function AdminPage() {
     )
   }
 
-  /* ================= SUBMIT ================= */
+  /* ================= SUBMIT KE JURI ================= */
 
-  async function handleSubmitFinal(){
+  async function handleSubmitFinal() {
 
-    if(nominasiFinal.length === 0){
+    if (nominasiFinal.length === 0) {
       alert("Belum ada nominasi final")
       return
     }
 
-    const payload = nominasiFinal.map((item:any)=>({
+    const payload = nominasiFinal.map((item: any) => ({
       pegawai_id: item.pegawai.id,
       total_nilai: item.total_nilai,
-      status:"pending"
+      status: "pending"
     }))
 
     const { error } = await supabase
       .from("approval")
       .insert(payload)
 
-    if(error){
-      console.error("Submit error:",error)
-      alert("Gagal kirim ke juri")
+    if (error) {
+      console.error("Submit error:", error)
+      alert("Gagal mengirim data ke penilaian juri")
       return
     }
 
@@ -270,160 +287,56 @@ export default function AdminPage() {
           </p>
         )}
 
-        {ranking.slice(0,1).map((item:any,index:number)=>(
-          <div
-            key={item.pegawai_id}
-            className="flex items-center gap-4"
-          >
+        <div className="space-y-4">
 
-            <div className="bg-white/15 w-16 h-20 flex items-center justify-center rounded-xl text-2xl font-bold">
-              {index+1}
-            </div>
+          {ranking.slice(0,1).map((item:any, index:number)=>(
 
-            <div className="flex justify-between flex-1 bg-white/15 p-4 rounded-xl">
+            <div
+              key={item.pegawai_id}
+              className="flex items-center gap-4"
+            >
 
-              <div>
-                <p className="text-xs text-cyan-400 uppercase">
-                  {item.tim}
-                </p>
-
-                <p className="text-lg font-bold">
-                  {item.nama}
-                </p>
-
-                <p className="text-sm text-blue-200">
-                  Hasil: {Number(item.nilai).toFixed(1)}
-                </p>
+              <div className="bg-white/15 w-16 h-20 flex items-center justify-center rounded-xl text-2xl font-bold">
+                {index+1}
               </div>
 
-              <button className="bg-yellow-300 px-5 py-2 rounded-lg text-black font-bold">
-                Submit
-              </button>
+              <div className="flex justify-between flex-1 bg-white/15 p-4 rounded-xl">
 
-            </div>
+                <div>
 
-          </div>
-        ))}
-
-      </div>
-
-      {/* ================= NOMINASI ================= */}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* DAFTAR NOMINASI */}
-
-        <div className="bg-[#1a2f6d] p-6 rounded-xl">
-
-          <h2 className="text-xl font-bold mb-6 text-cyan-300">
-            Daftar Nominasi Tim
-          </h2>
-
-          {Object.keys(nominasi).length === 0 && (
-            <p className="text-blue-300">
-              Belum ada nominasi
-            </p>
-          )}
-
-          {Object.entries(nominasi).map(([tim,bulanData]:any)=>(
-            <div key={tim} className="mb-6">
-
-              <h3 className="font-bold mb-3">
-                {tim}
-              </h3>
-
-              {Object.entries(bulanData).map(([bulan,data]:any)=>(
-                <div key={bulan} className="bg-[#233e80] p-4 rounded-xl mb-3">
-
-                  <p>{bulan}</p>
-
-                  <p className="font-semibold">
-                    {data.pegawai.nama}
+                  <p className="text-xs text-cyan-400 uppercase font-semibold">
+                    {item.tim}
                   </p>
 
-                  <p>Nilai: {data.total_nilai}</p>
+                  <p className="text-lg font-bold">
+                    {item.nama}
+                  </p>
 
-                  <div className="flex gap-2 mt-2">
-
-                    <button
-                      onClick={()=>handleSetFinal(data)}
-                      className="bg-green-500 px-3 py-1 rounded"
-                    >
-                      OKE
-                    </button>
-
-                    <button
-                      onClick={()=>handleRemoveFinal(data.pegawai.id)}
-                      className="bg-red-500 px-3 py-1 rounded"
-                    >
-                      TIDAK
-                    </button>
-
-                  </div>
+                  <p className="text-sm text-blue-200">
+                    Hasil: {Number(item.nilai).toFixed(1)}
+                  </p>
 
                 </div>
-              ))}
 
-            </div>
-          ))}
-
-        </div>
-
-        {/* NOMINASI FINAL */}
-
-        <div className="bg-[#1a2f6d] p-6 rounded-xl flex flex-col justify-between">
-
-          <div>
-
-            <h2 className="text-xl font-bold mb-6 text-cyan-300">
-              Nominasi Final
-            </h2>
-
-            {nominasiFinal.length === 0 && (
-              <p className="text-blue-300">
-                Belum ada nominasi final
-              </p>
-            )}
-
-            {nominasiFinal.map((n:any)=>(
-              <div key={n.pegawai.id} className="mb-4 bg-green-900/30 p-4 rounded">
-
-                <p className="font-bold">
-                  {n.pegawai.tim}
-                </p>
-
-                <p className="text-lg">
-                  {n.pegawai.nama}
-                </p>
-
-                <p>
-                  Nilai: {n.total_nilai}
-                </p>
+                <button
+                  onClick={() => handleSubmitRanking(item)}
+                  className="bg-yellow-300 px-5 py-2 rounded-lg text-black font-bold"
+                >
+                  Submit
+                </button>
 
               </div>
-            ))}
-
-          </div>
-
-          {nominasiFinal.length>0 && (
-
-            <div className="flex justify-end mt-6">
-
-              <button
-                onClick={handleSubmitFinal}
-                className="px-6 py-2 bg-cyan-500 rounded-lg"
-              >
-                Submit ke Juri
-              </button>
 
             </div>
 
-          )}
+          ))}
 
         </div>
 
       </div>
 
     </div>
+
   )
+
 }
