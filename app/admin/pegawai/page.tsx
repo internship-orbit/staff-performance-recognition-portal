@@ -122,11 +122,13 @@ export default function KelolaPegawaiPage() {
 
     <div className="min-h-screen bg-[#0b1635] text-blue-100 px-8 py-10 space-y-10">
 
-      {/* HEADER */}
+      {/* HEADER SIMPLE */}
 
-      <div className="bg-linear-to-r from-cyan-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
-        <h1 className="text-2xl font-bold">Kelola Pegawai</h1>
-        <p className="text-sm opacity-90">
+      <div className="mb-4">
+        <h1 className="text-3xl font-bold text-cyan-300">
+          Kelola Pegawai
+        </h1>
+        <p className="text-blue-300 text-sm">
           Manage your team members efficiently
         </p>
       </div>
