@@ -67,9 +67,18 @@ export default function UploadPage() {
 
     <div className="min-h-screen bg-[#0b1635] text-blue-100 px-6 sm:px-10 py-10">
 
-      {/* CONTAINER UTAMA */}
-
       <div className="max-w-6xl mx-auto space-y-10">
+
+        {/* ================= HEADER SIMPLE ================= */}
+
+        <div>
+          <h1 className="text-3xl font-bold text-cyan-300">
+            Upload File Excel
+          </h1>
+          <p className="text-blue-300 text-sm">
+            Submit Raw Excel for Review
+          </p>
+        </div>
 
         {/* ================= UPLOAD CARD ================= */}
 
@@ -81,10 +90,6 @@ export default function UploadPage() {
           shadow-lg
           p-8
         ">
-
-          <h1 className="text-2xl font-bold mb-8 text-cyan-300 tracking-wide">
-            Upload File Excel Mentah
-          </h1>
 
           {/* DROP ZONE */}
 
@@ -183,7 +188,6 @@ export default function UploadPage() {
           </div>
 
         </div>
-
 
         {/* ================= FILE LIST ================= */}
 

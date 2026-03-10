@@ -223,40 +223,39 @@ export default function InputNilaiPage() {
 
       <div className="max-w-6xl mx-auto space-y-10">
 
+        {/* HEADER SIMPLE */}
+
+        <div>
+          <h1 className="text-3xl font-bold text-cyan-300">
+            Input Nilai Final
+          </h1>
+          <p className="text-blue-300 text-sm">
+            Enter Scores. Drive Performance.
+          </p>
+        </div>
+
         {/* FORM INPUT */}
 
         <div className="bg-[#1a2f6d]/80 border border-cyan-400/15 rounded-2xl shadow-lg p-8">
-
-          <h1 className="text-2xl font-bold mb-8 text-cyan-300">
-            Input Nilai Final
-          </h1>
 
           <div className="grid md:grid-cols-4 gap-6">
 
             {/* TAHUN */}
 
             <div>
-
-              <label className="text-sm text-blue-200">
-                Tahun
-              </label>
-
+              <label className="text-sm text-blue-200">Tahun</label>
               <input
                 type="number"
                 value={tahun}
                 onChange={(e) => setTahun(Number(e.target.value))}
                 className="w-full bg-[#0f1c3f] border border-cyan-400/20 rounded-lg px-4 py-2"
               />
-
             </div>
 
             {/* TRIWULAN */}
 
             <div>
-
-              <label className="text-sm text-blue-200">
-                Triwulan
-              </label>
+              <label className="text-sm text-blue-200">Triwulan</label>
 
               <select
                 value={triwulan}
@@ -266,14 +265,11 @@ export default function InputNilaiPage() {
                 }}
                 className="w-full bg-[#0f1c3f] border border-cyan-400/20 rounded-lg px-4 py-2"
               >
-
                 <option value="">Pilih Triwulan</option>
-
                 <option value="1">Triwulan 1</option>
                 <option value="2">Triwulan 2</option>
                 <option value="3">Triwulan 3</option>
                 <option value="4">Triwulan 4</option>
-
               </select>
 
             </div>
@@ -281,17 +277,13 @@ export default function InputNilaiPage() {
             {/* BULAN */}
 
             <div>
-
-              <label className="text-sm text-blue-200">
-                Bulan
-              </label>
+              <label className="text-sm text-blue-200">Bulan</label>
 
               <select
                 value={bulan}
                 onChange={(e) => setBulan(e.target.value)}
                 className="w-full bg-[#0f1c3f] border border-cyan-400/20 rounded-lg px-4 py-2"
               >
-
                 <option value="">Pilih Bulan</option>
 
                 {triwulan &&
@@ -308,10 +300,7 @@ export default function InputNilaiPage() {
             {/* PEGAWAI */}
 
             <div>
-
-              <label className="text-sm text-blue-200">
-                Pegawai
-              </label>
+              <label className="text-sm text-blue-200">Pegawai</label>
 
               <select
                 value={selectedPegawai}
@@ -338,10 +327,7 @@ export default function InputNilaiPage() {
           <div className="grid md:grid-cols-2 gap-6 mt-6">
 
             <div>
-
-              <label className="text-sm text-blue-200">
-                Nilai Final
-              </label>
+              <label className="text-sm text-blue-200">Nilai Final</label>
 
               <input
                 type="number"
