@@ -11,9 +11,9 @@ export default function NotificationBell() {
   const [notif, setNotif] = useState<any[]>([])
   const bellRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    loadNotif()
-  }, [])
+  /* =========================================================
+     LOAD NOTIFICATION
+  ========================================================= */
 
   async function loadNotif() {
 
@@ -25,14 +25,54 @@ export default function NotificationBell() {
       .limit(5)
 
     if (error) {
-      console.log(error)
+      console.log("Notif error:", error)
       return
     }
 
     setNotif(data || [])
+
   }
 
-  /* CLICK OUTSIDE CLOSE */
+  /* =========================================================
+     INITIAL LOAD
+  ========================================================= */
+
+  useEffect(() => {
+    loadNotif()
+  }, [])
+
+
+  /* =========================================================
+     REALTIME LISTENER
+  ========================================================= */
+
+  useEffect(() => {
+
+    const channel = supabase
+      .channel("realtime-notifikasi")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifikasi"
+        },
+        () => {
+          loadNotif()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+
+  }, [])
+
+
+  /* =========================================================
+     CLICK OUTSIDE CLOSE
+  ========================================================= */
 
   useEffect(() => {
 
@@ -56,6 +96,11 @@ export default function NotificationBell() {
     }
 
   }, [open])
+
+
+  /* =========================================================
+     UI
+  ========================================================= */
 
   return (
 
@@ -104,5 +149,7 @@ export default function NotificationBell() {
       )}
 
     </div>
+
   )
+
 }

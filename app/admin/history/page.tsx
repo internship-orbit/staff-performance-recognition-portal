@@ -3,10 +3,29 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 
+/* ================= TYPE ================= */
+
+type Pegawai = {
+  id: string
+  nama: string
+  tim: string
+}
+
+type HistoryItem = {
+  id: string
+  total_nilai: number
+  tahun: number
+  periode: string
+  created_at: string
+  pegawai: Pegawai[]
+}
+
 export default function HistoryPage() {
 
-  const [data, setData] = useState<any[]>([])
-  const [tahunFilter, setTahunFilter] = useState("all")
+  const [data, setData] = useState<HistoryItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  /* ================= LOAD DATA ================= */
 
   useEffect(() => {
     getHistory()
@@ -14,14 +33,18 @@ export default function HistoryPage() {
 
   async function getHistory() {
 
-    const { data } = await supabase
+    setLoading(true)
+
+    const { data: result, error } = await supabase
       .from("nilai_final")
       .select(`
         id,
         total_nilai,
-        periode,
         tahun,
-        pegawai (
+        periode,
+        created_at,
+        pegawai:pegawai_id (
+          id,
           nama,
           tim
         )
@@ -29,140 +52,168 @@ export default function HistoryPage() {
       .eq("status", "approved")
       .order("tahun", { ascending: false })
 
-    setData(data || [])
+    if (error) {
+      console.error("Error history:", error)
+      setLoading(false)
+      return
+    }
+
+    setData((result as HistoryItem[]) ?? [])
+    setLoading(false)
   }
 
-  const filteredData =
-    tahunFilter === "all"
-      ? data
-      : data.filter((d) => d.tahun === Number(tahunFilter))
+  /* ================= GROUP BY TAHUN ================= */
 
-  const tahunList = [...new Set(data.map((d) => d.tahun))]
+  const grouped = data.reduce((acc: any, item) => {
+
+    const tahun = item.tahun
+
+    if (!acc[tahun]) acc[tahun] = []
+
+    acc[tahun].push(item)
+
+    return acc
+
+  }, {})
+
+  /* ================= UI ================= */
 
   return (
 
-    <div className="min-h-screen bg-[#0b1635] text-blue-100 px-6 sm:px-10 py-10">
+    <div className="min-h-screen bg-[#0b1635] text-blue-100 px-8 py-10">
 
       <div className="max-w-6xl mx-auto space-y-10">
 
-        {/* HEADER */}
+        {/* ================= HEADER ================= */}
 
-        <div className="
-          bg-[#1a2f6d]/80
-          backdrop-blur-xl
-          border border-cyan-400/15
-          rounded-2xl
-          shadow-lg
-          p-8
-        ">
+        <div>
 
-          <h1 className="text-2xl font-bold text-cyan-300">
+          <h1 className="text-3xl font-bold text-cyan-300 tracking-wide">
             Arsip Pegawai Teladan
           </h1>
 
-          <p className="text-sm text-blue-300/70 mt-2">
-            Riwayat pegawai teladan yang telah disetujui
+          <p className="text-blue-300/70 mt-1">
+            Hall of Excellence. Celebrating Achievement.
           </p>
 
         </div>
 
+        {/* ================= LOADING ================= */}
 
-        {/* FILTER */}
+        {loading && (
+          <div className="text-blue-300">
+            Loading history...
+          </div>
+        )}
 
-        <div className="
-          bg-[#1a2f6d]/80
-          backdrop-blur-xl
-          border border-cyan-400/15
-          rounded-2xl
-          shadow-lg
-          p-6
-        ">
+        {/* ================= EMPTY ================= */}
 
-          <label className="text-sm text-blue-300 mr-4">
-            Filter Tahun
-          </label>
+        {!loading && data.length === 0 && (
 
-          <select
-            value={tahunFilter}
-            onChange={(e) => setTahunFilter(e.target.value)}
+          <div
             className="
-              bg-[#0f1c3f]
-              border border-cyan-400/20
-              rounded-lg
-              px-4 py-2
-              text-blue-100
+            bg-[#1a2f6d]/80
+            border border-cyan-400/15
+            rounded-xl
+            p-10
+            text-center
+            text-blue-300
             "
           >
+            Belum ada pegawai teladan yang disetujui
+          </div>
 
-            <option value="all">Semua Tahun</option>
+        )}
 
-            {tahunList.map((tahun) => (
-              <option key={tahun} value={tahun}>
-                {tahun}
-              </option>
-            ))}
+        {/* ================= HISTORY LIST ================= */}
 
-          </select>
+        <div className="space-y-10">
 
-        </div>
+          {Object.entries(grouped).map(([tahun, list]: any) => (
 
+            <div key={tahun}>
 
-        {/* DATA */}
+              {/* ================= TAHUN ================= */}
 
-        <div className="
-          bg-[#1a2f6d]/80
-          backdrop-blur-xl
-          border border-cyan-400/15
-          rounded-2xl
-          shadow-lg
-          p-8
-        ">
+              <h2 className="text-2xl font-bold text-cyan-300 mb-6">
+                Tahun {tahun}
+              </h2>
 
-          <h2 className="text-xl font-bold mb-8 text-cyan-300">
-            Daftar Arsip
-          </h2>
+              {/* ================= GRID ================= */}
 
-          {filteredData.length === 0 && (
-            <p className="text-blue-300/60">
-              Belum ada arsip pegawai teladan
-            </p>
-          )}
+              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
 
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {list.map((item: HistoryItem) => {
 
-            {filteredData.map((item) => (
+                  const pegawai = item.pegawai?.[0]
 
-              <div
-                key={item.id}
-                className="
-                  bg-[#0f1c3f]
-                  border border-cyan-400/15
-                  rounded-xl
-                  p-6
-                "
-              >
+                  return (
 
-                <p className="text-sm text-cyan-300 uppercase">
-                  {item.periode} • {item.tahun}
-                </p>
+                    <div
+                      key={item.id}
+                      className="
+                      bg-[#1a2f6d]/80
+                      border border-cyan-400/15
+                      rounded-xl
+                      p-6
+                      shadow-lg
+                      flex flex-col
+                      justify-between
+                      "
+                    >
 
-                <h3 className="text-lg font-semibold text-white mt-2">
-                  {item.pegawai.nama}
-                </h3>
+                      {/* ================= BADGE ================= */}
 
-                <p className="text-sm text-blue-300 mt-2">
-                  Tim : {item.pegawai.tim}
-                </p>
+                      <div className="text-xs text-cyan-300 uppercase mb-2">
+                        Pegawai Teladan
+                      </div>
 
-                <p className="text-sm text-blue-300">
-                  Total Nilai : {item.total_nilai}
-                </p>
+                      {/* ================= NAMA ================= */}
+
+                      <h3 className="text-xl font-semibold text-white">
+                        {pegawai?.nama}
+                      </h3>
+
+                      {/* ================= TIM ================= */}
+
+                      <p className="text-sm text-blue-300 mt-1">
+                        Tim {pegawai?.tim}
+                      </p>
+
+                      {/* ================= PERIODE ================= */}
+
+                      <div className="mt-4 text-sm text-blue-200">
+
+                        <p>
+                          Periode : {item.periode}
+                        </p>
+
+                        <p>
+                          Nilai : {item.total_nilai}
+                        </p>
+
+                      </div>
+
+                      {/* ================= FOOTER ================= */}
+
+                      <div className="mt-6 text-xs text-blue-400">
+
+                        Ditetapkan :{" "}
+                        {new Date(item.created_at).toLocaleDateString("id-ID")}
+
+                      </div>
+
+                    </div>
+
+                  )
+
+                })}
 
               </div>
 
-            ))}
+            </div>
 
-          </div>
+          ))}
 
         </div>
 
@@ -171,4 +222,5 @@ export default function HistoryPage() {
     </div>
 
   )
+
 }

@@ -20,11 +20,14 @@ type Juri = {
 }
 
 export default function PenilaianJuriPage() {
+
   const [nominasi, setNominasi] = useState<Nominasi[]>([])
   const [juriList, setJuriList] = useState<Juri[]>([])
   const [penilaian, setPenilaian] = useState<any[]>([])
+
   const [selectedPegawai, setSelectedPegawai] = useState<Pegawai | null>(null)
   const [selectedJuri, setSelectedJuri] = useState<Juri | null>(null)
+
   const [nilai, setNilai] = useState("")
   const [showModal, setShowModal] = useState(false)
 
@@ -38,8 +41,13 @@ export default function PenilaianJuriPage() {
     await fetchPenilaian()
   }
 
+  /* ===============================
+     AMBIL NOMINASI FINAL
+  =============================== */
+
   async function fetchNominasi() {
-    const { data } = await supabase
+
+    const { data, error } = await supabase
       .from("nominasi_final")
       .select(`
         id,
@@ -50,20 +58,56 @@ export default function PenilaianJuriPage() {
         )
       `)
 
+    if (error) {
+      console.log(error)
+      return
+    }
+
     if (data) setNominasi(data as any)
   }
 
+  /* ===============================
+     AMBIL DATA JURI
+  =============================== */
+
   async function fetchJuri() {
-    const { data } = await supabase.from("juri").select("*")
+
+    const { data, error } = await supabase
+      .from("juri")
+      .select("*")
+
+    if (error) {
+      console.log(error)
+      return
+    }
+
     if (data) setJuriList(data)
   }
 
+  /* ===============================
+     AMBIL DATA PENILAIAN
+  =============================== */
+
   async function fetchPenilaian() {
-    const { data } = await supabase.from("penilaian").select("*")
+
+    const { data, error } = await supabase
+      .from("penilaian")
+      .select("*")
+
+    if (error) {
+      console.log(error)
+      return
+    }
+
     if (data) setPenilaian(data)
   }
 
+  /* ===============================
+     OPEN MODAL INPUT NILAI
+  =============================== */
+
   function openModal(juri: Juri, pegawai: Pegawai) {
+
     setSelectedJuri(juri)
     setSelectedPegawai(pegawai)
 
@@ -80,48 +124,80 @@ export default function PenilaianJuriPage() {
     setShowModal(true)
   }
 
+  /* ===============================
+     SUBMIT NILAI JURI
+  =============================== */
+
   async function submitNilai() {
+
     if (!selectedPegawai || !selectedJuri) return
 
-    await supabase.from("penilaian").upsert(
-      {
-        pegawai_id: selectedPegawai.id,
-        juri_id: selectedJuri.id,
-        total_nilai: Number(nilai),
-      },
-      {
-        onConflict: "pegawai_id,juri_id",
-      }
-    )
+    const { error } = await supabase
+      .from("penilaian")
+      .upsert(
+        {
+          pegawai_id: selectedPegawai.id,
+          juri_id: selectedJuri.id,
+          total_nilai: Number(nilai)
+        },
+        {
+          onConflict: "pegawai_id,juri_id"
+        }
+      )
+
+    if (error) {
+      alert(error.message)
+      return
+    }
 
     setShowModal(false)
     setNilai("")
     fetchPenilaian()
   }
 
+  /* ===============================
+     HAPUS NILAI
+  =============================== */
+
   async function hapusNilai() {
+
     if (!selectedPegawai || !selectedJuri) return
 
-    await supabase
+    const { error } = await supabase
       .from("penilaian")
       .delete()
       .match({
         pegawai_id: selectedPegawai.id,
-        juri_id: selectedJuri.id,
+        juri_id: selectedJuri.id
       })
+
+    if (error) {
+      alert(error.message)
+      return
+    }
 
     setShowModal(false)
     setNilai("")
     fetchPenilaian()
   }
 
-    function sudahMenilai(pegawaiId: string, juriId: string) {
-      return penilaian.some(
-        (p) => p.pegawai_id === pegawaiId && p.juri_id === juriId
-      )
-    }
+  /* ===============================
+     CEK SUDAH DINILAI
+  =============================== */
 
-    function hitungRataNilai(pegawaiId: string) {
+  function sudahMenilai(pegawaiId: string, juriId: string) {
+
+    return penilaian.some(
+      (p) => p.pegawai_id === pegawaiId && p.juri_id === juriId
+    )
+  }
+
+  /* ===============================
+     HITUNG RATA NILAI
+  =============================== */
+
+  function hitungRataNilai(pegawaiId: string) {
+
     const nilaiPegawai = penilaian.filter(
       (p) => p.pegawai_id === pegawaiId
     )
@@ -136,7 +212,12 @@ export default function PenilaianJuriPage() {
     return (total / nilaiPegawai.length).toFixed(1)
   }
 
-    function hitungPeringkat() {
+  /* ===============================
+     HITUNG PERINGKAT
+  =============================== */
+
+  function hitungPeringkat() {
+
     const ranking = nominasi.map((item) => ({
       pegawaiId: item.pegawai.id,
       nilai: Number(hitungRataNilai(item.pegawai.id))
@@ -156,65 +237,88 @@ export default function PenilaianJuriPage() {
   const peringkat = hitungPeringkat()
 
   return (
-    <div className="p-8 text-white">
-      <h1 className="text-2xl font-bold mb-6">Penilaian Juri</h1>
 
-      {nominasi.length === 0 && (
-        <div className="bg-gray-200 text-black p-4 rounded">
-          Belum ada data penilaian
+    <div className="min-h-screen bg-[#0b1635] text-blue-100 px-6 sm:px-10 py-10">
+
+      <div className="max-w-6xl mx-auto space-y-10">
+
+        <div>
+          <h1 className="text-3xl font-bold text-cyan-300">
+            Penilaian Juri
+          </h1>
+          <p className="text-blue-300/70 mt-1">
+            Score Entry by Panelists
+          </p>
         </div>
-      )}
 
-      <div className="space-y-6">
-        {nominasi.map((item) => (
-          <div
-            key={item.id}
-            className="bg-blue-900 p-6 rounded-xl shadow-md"
-          >
-            <p className="text-sm text-cyan-400 font-semibold">
-              {item.pegawai.tim.toUpperCase()}
-            </p>
+        {nominasi.length === 0 && (
+          <div className="bg-gray-200 text-black p-4 rounded">
+            Belum ada nominasi final
+          </div>
+        )}
 
-            <h2 className="text-xl font-bold mb-4">
-              {item.pegawai.nama}
-            </h2>
+        <div className="space-y-6">
 
-            <div className="grid grid-cols-10 gap-3">
-              {juriList.map((juri) => {
-                const isDone = sudahMenilai(item.pegawai.id, juri.id)
+          {nominasi.map((item) => (
 
-                return (
-                  <button
-                    key={juri.id}
-                    onClick={() => openModal(juri, item.pegawai)}
-                    className={`px-4 py-2 rounded-lg font-semibold text-white ${
-                      isDone ? "bg-green-500" : "bg-red-500"
-                    }`}
-                  >
-                    {juri.nama}
-                  </button>
-                )
-              })}
+            <div
+              key={item.id}
+              className="bg-blue-900 p-6 rounded-xl shadow-md"
+            >
+
+              <p className="text-sm text-cyan-400 font-semibold">
+                {item.pegawai.tim.toUpperCase()}
+              </p>
+
+              <h2 className="text-xl font-bold mb-4">
+                {item.pegawai.nama}
+              </h2>
+
+              <div className="grid grid-cols-10 gap-3">
+
+                {juriList.map((juri) => {
+
+                  const isDone = sudahMenilai(item.pegawai.id, juri.id)
+
+                  return (
+
+                    <button
+                      key={juri.id}
+                      onClick={() => openModal(juri, item.pegawai)}
+                      className={`px-4 py-2 rounded-lg font-semibold text-white ${
+                        isDone ? "bg-green-500" : "bg-red-500"
+                      }`}
+                    >
+                      {juri.nama}
+                    </button>
+
+                  )
+                })}
+
+              </div>
+
+              <div className="mt-4 text-white font-semibold">
+                Nilai: {hitungRataNilai(item.pegawai.id)}
+              </div>
+
+              <div className="text-white font-semibold">
+                Peringkat: {peringkat[item.pegawai.id] || "-"}
+              </div>
 
             </div>
 
-            <div className="mt-4 text-white font-semibold">
-              Nilai: {hitungRataNilai(item.pegawai.id)}
-            </div>
-
-            <div className="text-white font-semibold">
-              Peringkat: {peringkat[item.pegawai.id] || "-"}
-            </div>
-            </div>
           ))}
+
         </div>
+
+      </div>
 
       {showModal && selectedPegawai && selectedJuri && (
+
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
-          
+
           <div className="relative bg-[#1f3a74] w-175 p-10 rounded-2xl shadow-xl">
 
-            {/* tombol X */}
             <button
               onClick={() => setShowModal(false)}
               className="absolute top-4 right-4 text-gray-300 hover:text-white text-xl"
@@ -261,9 +365,13 @@ export default function PenilaianJuriPage() {
               </button>
 
             </div>
+
           </div>
+
         </div>
+
       )}
+
     </div>
   )
 }

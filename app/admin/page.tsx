@@ -1,423 +1,515 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { supabase } from "../../lib/supabaseClient"
-import StatsCard from "./components/statscard"
+import { supabase } from "@/lib/supabaseClient"
 import Header from "./components/header"
 import QuickActions from "./components/quickactions"
+import StatsCard from "./components/statscard"
+
 import { Users, FileCheck, AlertCircle, Activity } from "lucide-react"
 
-export default function AdminPage() {
+export default function AdminPage(){
 
-  const [pegawai, setPegawai] = useState<any[]>([])
-  const [ckpData, setCkpData] = useState<any[]>([])
-  const [nominasi, setNominasi] = useState<any>({})
-  const [nominasiFinal, setNominasiFinal] = useState<any[]>([])
-  const [ranking, setRanking] = useState<any[]>([])
-  const [juriDone, setJuriDone] = useState(0)
-  const [juriTotal, setJuriTotal] = useState(0)
+const [nominasi,setNominasi] = useState<any[]>([])
+const [finalNominee,setFinalNominee] = useState<any[]>([])
+const [ranking,setRanking] = useState<any[]>([])
 
-  function getNamaBulan(dateString: string) {
+const [pegawaiCount,setPegawaiCount] = useState(0)
+const [nilaiCount,setNilaiCount] = useState(0)
 
-    const bulan = [
-      "Januari","Februari","Maret","April","Mei","Juni",
-      "Juli","Agustus","September","Oktober","November","Desember"
-    ]
+useEffect(()=>{
+loadNominasi()
+loadRanking()
+loadStats()
+},[])
 
-    const date = new Date(dateString)
+/* =========================
+LOAD STATS CARD
+========================= */
 
-    return bulan[date.getMonth()]
-  }
+async function loadStats(){
 
-  useEffect(() => {
-    loadData()
-  }, [])
+const {data:pegawai} = await supabase
+.from("pegawai")
+.select("id")
 
-  async function loadData() {
-    await getPegawai()
-    await getCKP()
-    await getMonitoringJuri()
-    await getNominasiPerTim()
-    await getRankingLive()
-  }
+const {data:nilai} = await supabase
+.from("nilai_final")
+.select("id")
 
-  async function getPegawai() {
+setPegawaiCount(pegawai?.length || 0)
+setNilaiCount(nilai?.length || 0)
 
-    const { data } = await supabase
-      .from("pegawai")
-      .select("*")
-      .order("nama")
+}
 
-    setPegawai(data || [])
-  }
+/* =========================
+LOAD NOMINASI
+========================= */
 
-  async function getCKP() {
+async function loadNominasi(){
 
-    const { data } = await supabase
-      .from("ckp")
-      .select(`id, pegawai ( nama )`)
+const {data,error} = await supabase
+.from("nilai_final")
+.select(`
+id,
+nilai,
+total_nilai,
+periode_bulan,
+pegawai:pegawai_id(
+id,
+nama,
+tim
+)
+`)
 
-    setCkpData(data || [])
-  }
+if(error){
+console.log(error)
+return
+}
 
-  async function getMonitoringJuri() {
+if(!data){
+setNominasi([])
+return
+}
 
-    const { data } = await supabase
-      .from("penilaian")
-      .select("status")
+/* AUTO NOMINASI TOP 1 TIM BULAN */
 
-    if (!data) return
+const map:any = {}
 
-    const done = data.filter((d:any)=> d.status === "done").length
+data.forEach((item:any)=>{
 
-    setJuriDone(done)
-    setJuriTotal(data.length)
-  }
+const tim = item.pegawai?.tim || "Tanpa Tim"
 
-  async function getNominasiPerTim() {
+const bulan = new Date(item.periode_bulan)
+.toLocaleDateString("id-ID",{month:"long"})
 
-    const { data } = await supabase
-      .from("nilai_final")
-      .select(`
-        total_nilai,
-        periode_bulan,
-        pegawai (
-          id,
-          nama,
-          tim
-        )
-      `)
-      .order("total_nilai", { ascending:false })
+const key = `${tim}-${bulan}`
 
-    const grouped:any = {}
+if(!map[key]){
+map[key] = item
+}else{
+if(item.total_nilai > map[key].total_nilai){
+map[key] = item
+}
+}
 
-    data?.forEach((item:any)=>{
+})
 
-      const tim = item.pegawai.tim
-      const bulan = getNamaBulan(item.periode_bulan)
+setNominasi(Object.values(map))
 
-      if(!grouped[tim]) grouped[tim] = {}
+}
 
-      if(!grouped[tim][bulan]) grouped[tim][bulan] = item
+/* =========================
+LOAD FINAL RANKING
+========================= */
 
-    })
+async function loadRanking(){
 
-    setNominasi(grouped)
-  }
+const {data,error} = await supabase
+.from("penilaian")
+.select(`
+pegawai_id,
+total_nilai,
+pegawai:pegawai_id(
+id,
+nama,
+tim
+)
+`)
 
-  async function getRankingLive() {
+if(error){
+console.log(error)
+return
+}
 
-    const { data } = await supabase.rpc("get_ranking_live")
+if(!data){
+setRanking([])
+return
+}
 
-    setRanking(data || [])
-  }
+const map:any = {}
 
-  function handleSetFinal(item:any){
+data.forEach((item:any)=>{
 
-    const tim = item.pegawai.tim
+const id = item.pegawai?.id
 
-    const already = nominasiFinal.find(
-      (n)=> n.pegawai.tim === tim
-    )
+if(!map[id]){
+map[id] = {
+pegawai_id:item.pegawai?.id,
+nama:item.pegawai?.nama,
+tim:item.pegawai?.tim,
+total:0,
+count:0
+}
+}
 
-    if(already){
-      alert("Tim ini sudah memiliki nominasi final")
-      return
-    }
+map[id].total += item.total_nilai
+map[id].count += 1
 
-    setNominasiFinal([...nominasiFinal,item])
-  }
+})
 
-  function handleRemoveFinal(id:string){
+const result = Object.values(map).map((item:any)=>({
+pegawai_id:item.pegawai_id,
+nama:item.nama,
+tim:item.tim,
+nilai:item.total/item.count
+}))
 
-    setNominasiFinal(
-      nominasiFinal.filter((n)=> n.pegawai.id !== id)
-    )
-  }
+result.sort((a:any,b:any)=>b.nilai-a.nilai)
 
-  async function handleSubmitFinal() {
+setRanking(result)
 
-    if (nominasiFinal.length === 0) {
-      alert("Belum ada nominasi final")
-      return
-    }
+}
 
-    const payload = nominasiFinal.map((item: any) => ({
-      pegawai_id: item.pegawai.id,
-      total_nilai: item.total_nilai,
-      status: "pending"
-    }))
+/* =========================
+PILIH NOMINASI FINAL
+========================= */
 
-    await supabase
-      .from("approval")
-      .insert(payload)
+function pilihFinal(item:any){
 
-    alert("Berhasil dikirim ke penilaian juri")
+const tim = item.pegawai?.tim
 
-    setNominasiFinal([])
-  }
+const sudahAda = finalNominee.find(
+(n:any)=> n.pegawai?.tim === tim
+)
 
-  return (
+if(sudahAda){
+alert("Setiap tim hanya boleh 1 nominasi final")
+return
+}
 
-    <div className="min-h-screen bg-[#0b1635] text-blue-100 space-y-8">
+setFinalNominee([...finalNominee,item])
 
-      <Header
-        title="Admin Board"
-        subtitle="Manage. Evaluate. Recognize."
-      />
+}
 
-      {/* STATS */}
+function tolakFinal(id:any){
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+setFinalNominee(
+finalNominee.filter((n:any)=> n.id !== id)
+)
 
-        <StatsCard
-          title="Total Pegawai"
-          value={pegawai.length}
-          subtitle="Data terdaftar"
-          icon={<Users size={22}/>}
-        />
+}
 
-        <StatsCard
-          title="Data Sudah Dinilai"
-          value={ckpData.length}
-          subtitle="Sudah diinput"
-          icon={<FileCheck size={22}/>}
-        />
+/* =========================
+KIRIM KE JURI
+========================= */
 
-        <StatsCard
-          title="Data Belum Dinilai"
-          value={pegawai.length - ckpData.length}
-          subtitle="Perlu input"
-          icon={<AlertCircle size={22}/>}
-        />
+async function kirimKeJuri(){
 
-        <StatsCard
-  title="Monitoring Penilaian TPK"
-  value={
-    juriTotal>0 && juriDone===juriTotal
-    ? "DONE"
-    : "IN PROGRESS"
-  }
-  valueColor={
-    juriTotal>0 && juriDone===juriTotal
-    ? "text-green-400"
-    : "text-cyan-400"
-  }
-  subtitle="Status Evaluasi"
-  icon={<Activity size={22}/>}
+if(finalNominee.length === 0){
+alert("Belum ada nominasi final")
+return
+}
+
+await supabase
+.from("nominasi_final")
+.delete()
+.neq("id","00000000-0000-0000-0000-000000000000")
+
+const dataInsert = finalNominee.map((item:any)=>({
+
+pegawai_id:item.pegawai.id,
+tim:item.pegawai.tim,
+total_nilai:item.total_nilai
+
+}))
+
+const {error} = await supabase
+.from("nominasi_final")
+.insert(dataInsert)
+
+if(error){
+console.log(error)
+alert("Gagal mengirim ke juri")
+return
+}
+
+alert("Berhasil dikirim ke juri")
+
+setFinalNominee([])
+
+}
+
+/* =========================
+KIRIM KE APPROVAL
+========================= */
+
+async function kirimKeApproval(){
+
+if(ranking.length === 0){
+alert("Belum ada ranking juri")
+return
+}
+
+await supabase
+.from("nominasi_final")
+.delete()
+.neq("id","00000000-0000-0000-0000-000000000000")
+
+const dataInsert = ranking.map((item:any)=>({
+
+pegawai_id:item.pegawai_id,
+tim:item.tim,
+total_nilai:item.nilai
+
+}))
+
+const {error} = await supabase
+.from("nominasi_final")
+.insert(dataInsert)
+
+if(error){
+console.log(error)
+alert("Gagal mengirim ke approval")
+return
+}
+
+alert("Ranking berhasil dikirim ke verifikator")
+
+}
+
+/* =========================
+GROUPING TIM
+========================= */
+
+const groupedByTeam = nominasi.reduce((acc:any,item:any)=>{
+
+const tim = item.pegawai?.tim || "Tanpa Tim"
+
+if(!acc[tim]) acc[tim] = []
+
+acc[tim].push(item)
+
+return acc
+
+},{})
+
+return(
+
+<div className="min-h-screen bg-[#0b1635] text-blue-100 space-y-8">
+
+<Header
+title="Admin Board"
+subtitle="Manage. Evaluate. Recognize."
 />
 
-      </div>
+{/* =========================
+STATS CARD
+========================= */}
 
-      <QuickActions/>
+<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
 
-      {/* NOMINASI SECTION */}
+<StatsCard
+title="Total Pegawai"
+value={pegawaiCount}
+subtitle="Data terdaftar"
+icon={<Users size={22}/>}
+/>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+<StatsCard
+title="Data Sudah Dinilai"
+value={nilaiCount}
+subtitle="Sudah diinput"
+icon={<FileCheck size={22}/>}
+/>
 
-        {/* NOMINASI TIM */}
+<StatsCard
+title="Data Belum Dinilai"
+value={pegawaiCount - nilaiCount}
+subtitle="Perlu input"
+icon={<AlertCircle size={22}/>}
+/>
 
-        <div className="lg:col-span-2 bg-[#1a2f6d] p-6 rounded-xl">
+<StatsCard
+title="Monitoring Penilaian TPK"
+value="IN PROGRESS"
+subtitle="Status Evaluasi"
+icon={<Activity size={22}/>}
+/>
 
-          <h2 className="text-xl font-bold text-cyan-300 mb-6">
-            Nominasi Tim
-          </h2>
+</div>
 
-          {Object.keys(nominasi).map((tim)=>{
+<QuickActions/>
 
-            const bulanData = nominasi[tim]
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            return(
+{/* =========================
+NOMINASI PER TIM
+========================= */}
 
-              <div key={tim} className="mb-8">
+<div className="bg-[#1a2f6d]/80 rounded-2xl p-8">
 
-                <h3 className="text-cyan-400 font-semibold mb-3 uppercase">
-                  {tim}
-                </h3>
+<h2 className="text-xl font-bold text-cyan-300 mb-6">
+Nominasi Per Tim
+</h2>
 
-                <div className="grid md:grid-cols-3 gap-4">
+<div className="space-y-8">
 
-                  {Object.keys(bulanData).map((bulan)=>{
+{Object.entries(groupedByTeam).map(([tim,data]:any)=>(
 
-                    const item:any = bulanData[bulan]
+<div key={tim}>
 
-                    return(
+<h3 className="text-cyan-300 font-bold text-lg">
+TIM {tim.toUpperCase()}
+</h3>
 
-                      <div
-                        key={bulan}
-                        className="bg-white/10 p-4 rounded-lg space-y-2"
-                      >
+<div className="space-y-4 mt-4">
 
-                        <p className="text-xs text-yellow-300 font-semibold">
-                          {bulan}
-                        </p>
+{data.map((item:any)=>{
 
-                        <p className="font-semibold">
-                          {item.pegawai.nama}
-                        </p>
+const bulan = new Date(item.periode_bulan)
+.toLocaleDateString("id-ID",{month:"long"})
 
-                        <p className="text-sm text-blue-200">
-                          Nilai {item.total_nilai}
-                        </p>
+const sudahDipilih = finalNominee.find(
+(n:any)=> n.pegawai?.tim === tim
+)
 
-                        <div className="flex gap-2 pt-2">
+return(
 
-                          <button
-                            onClick={()=>handleSetFinal(item)}
-                            className="bg-green-500 hover:bg-green-600 px-3 py-1 text-sm rounded"
-                          >
-                            Oke
-                          </button>
+<div
+key={item.id}
+className="flex justify-between bg-[#0f1c3f] p-4 rounded-xl"
+>
 
-                          <button
-                            className="bg-red-500 hover:bg-red-600 px-3 py-1 text-sm rounded"
-                          >
-                            Tidak
-                          </button>
+<div>
 
-                        </div>
+<p className="font-semibold text-white">
+{item.pegawai?.nama}
+</p>
 
-                      </div>
+<p className="text-xs text-blue-300">
+{bulan} • Nilai {item.total_nilai}
+</p>
 
-                    )
+</div>
 
-                  })}
+<div className="flex gap-2">
 
-                </div>
+<button
+onClick={()=>pilihFinal(item)}
+disabled={!!sudahDipilih}
+className="px-3 py-1 text-xs bg-green-500 rounded-md disabled:opacity-40"
+>
+OKE
+</button>
 
-              </div>
+<button
+onClick={()=>tolakFinal(item.id)}
+className="px-3 py-1 text-xs bg-red-500 rounded-md"
+>
+TIDAK
+</button>
 
-            )
+</div>
 
-          })}
+</div>
 
-        </div>
+)
 
-        {/* NOMINASI FINAL */}
+})}
 
-        <div className="bg-[#1a2f6d] p-6 rounded-xl">
+</div>
 
-          <h2 className="text-xl font-bold text-purple-300 mb-6">
-            Nominasi Final
-          </h2>
+</div>
 
-          {nominasiFinal.length === 0 && (
-            <p className="text-blue-200">
-              Belum ada kandidat dipilih
-            </p>
-          )}
+))}
 
-          <div className="space-y-4">
+</div>
 
-            {nominasiFinal.map((item:any)=>(
+</div>
 
-              <div
-                key={item.pegawai.id}
-                className="bg-white/10 p-4 rounded-lg flex justify-between items-center"
-              >
+{/* =========================
+NOMINASI FINAL
+========================= */}
 
-                <div>
+<div className="bg-[#1a2f6d]/80 rounded-2xl p-8">
 
-                  <p className="text-xs text-cyan-400 uppercase">
-                    {item.pegawai.tim}
-                  </p>
+<h2 className="text-xl font-bold text-cyan-300 mb-6">
+Nominasi Final
+</h2>
 
-                  <p className="font-semibold">
-                    {item.pegawai.nama}
-                  </p>
+{finalNominee.length === 0 && (
+<p className="text-blue-300/60">
+Belum ada nominasi final
+</p>
+)}
 
-                  <p className="text-sm text-blue-200">
-                    Nilai {item.total_nilai}
-                  </p>
+<div className="space-y-3">
 
-                </div>
+{finalNominee.map((item:any)=>(
 
-                <button
-                  onClick={()=>handleRemoveFinal(item.pegawai.id)}
-                  className="bg-red-500 px-3 py-1 text-sm rounded"
-                >
-                  Hapus
-                </button>
+<div
+key={item.id}
+className="bg-[#0f1c3f] p-4 rounded-lg"
+>
+{item.pegawai?.nama}
+</div>
 
-              </div>
+))}
 
-            ))}
+</div>
 
-          </div>
+<button
+onClick={kirimKeJuri}
+className="mt-6 px-4 py-2 bg-green-500 hover:bg-green-600 rounded-md font-semibold"
+>
+Kirim ke Juri
+</button>
 
-          {nominasiFinal.length > 0 && (
+</div>
 
-            <button
-              onClick={handleSubmitFinal}
-              className="mt-6 w-full bg-yellow-400 text-black py-2 rounded-lg font-bold"
-            >
-              Kirim ke Penilaian Juri
-            </button>
+</div>
 
-          )}
+{/* =========================
+FINAL RANKING
+========================= */}
 
-        </div>
+<div className="bg-[#1a2f6d]/80 rounded-2xl p-8">
 
-      </div>
+<h2 className="text-xl font-bold text-cyan-300 mb-6">
+Final Ranking
+</h2>
 
+{ranking.length === 0 && (
+<p className="text-blue-300/60">
+Belum ada penilaian juri
+</p>
+)}
 
-      {/* FINAL RANKING */}
+<div className="space-y-3">
 
-      <div className="bg-[#1a2f6d] p-6 rounded-xl">
+{ranking.map((item:any,index:number)=>(
 
-        <h2 className="text-2xl text-yellow-300 font-bold mb-5">
-          Final Ranking
-        </h2>
+<div
+key={index}
+className="flex justify-between bg-[#0f1c3f] p-4 rounded-lg"
+>
 
-        {ranking.length===0 && (
-          <p className="text-blue-200">
-            Belum ada penilaian
-          </p>
-        )}
+<span>
+{index+1}. {item.nama}
+</span>
 
-        <div className="space-y-4">
+<span className="text-cyan-300 font-semibold">
+{item.nilai.toFixed(1)}
+</span>
 
-        {ranking.slice(0,3).map((item:any, index:number)=>(
+</div>
 
-          <div
-            key={item.pegawai_id}
-            className="flex items-center gap-4"
-          >
+))}
 
-            <div className="bg-white/15 w-16 h-20 flex items-center justify-center rounded-xl text-2xl font-bold">
-              {index+1}
-            </div>
+</div>
 
-            <div className="flex justify-between flex-1 bg-white/15 p-4 rounded-xl">
+<button
+onClick={kirimKeApproval}
+className="mt-6 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-md font-semibold"
+>
+Kirim ke Approval
+</button>
 
-              <div>
+</div>
 
-                <p className="text-xs text-cyan-400 uppercase font-semibold">
-                  {item.tim}
-                </p>
+</div>
 
-                <p className="text-lg font-bold">
-                  {item.nama}
-                </p>
-
-                <p className="text-sm text-blue-200">
-                  Hasil: {Number(item.nilai).toFixed(1)}
-                </p>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        ))}
-
-        </div>
-
-      </div>
-
-    </div>
-
-  )
+)
 
 }
