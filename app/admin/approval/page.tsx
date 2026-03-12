@@ -3,243 +3,237 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 
-/* ================= TYPE ================= */
+/* ================= TYPES ================= */
 
 type Pegawai = {
-  id: string
-  nama: string
-  tim: string
+id: string
+nama: string
+tim: string
 }
 
 type Nominasi = {
-  id: string
-  pegawai_id: string
-  total_nilai: number
-  pegawai?: Pegawai
+id: string
+total_nilai: number
+pegawai: Pegawai | null
 }
 
-export default function ApprovalPage() {
+export default function ApprovalPage(){
 
-  const [data,setData] = useState<Nominasi[]>([])
-  const [loading,setLoading] = useState(false)
+const [data,setData] = useState<Nominasi[]>([])
+const [loading,setLoading] = useState(false)
 
-  useEffect(()=>{
-    getData()
-  },[])
+useEffect(()=>{
+loadData()
+},[])
 
-  /* ================= LOAD DATA ================= */
+/* ================= LOAD DATA ================= */
 
-  async function getData(){
+async function loadData(){
 
-    /* ambil nominasi */
+const {data,error} = await supabase
+.from("nominasi_final")
+.select(`
+id,
+total_nilai,
+pegawai:pegawai_id (
+id,
+nama,
+tim
+)
+`)
+.order("total_nilai",{ascending:false})
 
-    const { data:nominasiData, error } = await supabase
-      .from("nominasi_final")
-      .select("*")
-      .order("total_nilai",{ascending:false})
+if(error){
+console.error("Error load approval:",error)
+return
+}
 
-    if(error){
-      console.error("Error load approval:",error)
-      return
-    }
+if(!data){
+setData([])
+return
+}
 
-    if(!nominasiData){
-      setData([])
-      return
-    }
+/* mapping aman */
 
-    /* ambil semua pegawai */
+const mapped:Nominasi[] = data.map((item:any)=>({
 
-    const { data:pegawaiData } = await supabase
-      .from("pegawai")
-      .select("id,nama,tim")
+id:item.id,
+total_nilai:item.total_nilai,
+pegawai:item.pegawai ?? null
 
-    /* mapping pegawai */
+}))
 
-    const result = nominasiData.map((item:any)=>{
+setData(mapped)
 
-      const pegawai = pegawaiData?.find(
-        (p:any)=>p.id === item.pegawai_id
-      )
+}
 
-      return{
-        ...item,
-        pegawai
-      }
+/* ================= APPROVE ================= */
 
-    })
+async function approvePegawai(pegawaiId:string){
 
-    setData(result)
+setLoading(true)
 
-  }
+try{
 
-  /* ================= APPROVE ================= */
+await supabase
+.from("nilai_final")
+.update({status:"approved"})
+.eq("pegawai_id",pegawaiId)
 
-  async function approvePegawai(pegawaiId:string){
+await supabase
+.from("history_penghargaan")
+.insert({
+pegawai_id:pegawaiId,
+keterangan:"Pegawai Teladan",
+tanggal:new Date()
+})
 
-    setLoading(true)
+alert("Pegawai berhasil diapprove")
 
-    try{
+await loadData()
 
-      /* update nilai_final */
+}catch(err){
 
-      await supabase
-        .from("nilai_final")
-        .update({status:"approved"})
-        .eq("pegawai_id",pegawaiId)
+console.error(err)
+alert("Gagal approve")
 
-      /* simpan ke history */
+}
 
-      await supabase
-        .from("history_penghargaan")
-        .insert({
-          pegawai_id:pegawaiId,
-          keterangan:"Pegawai Teladan",
-          tanggal:new Date()
-        })
+setLoading(false)
 
-      alert("Pegawai berhasil diapprove")
+}
 
-      await getData()
+/* ================= REJECT ================= */
 
-    }catch(err){
+async function rejectPegawai(pegawaiId:string){
 
-      console.error(err)
-      alert("Gagal approve")
+setLoading(true)
 
-    }
+try{
 
-    setLoading(false)
+await supabase
+.from("nilai_final")
+.update({status:"rejected"})
+.eq("pegawai_id",pegawaiId)
 
-  }
+alert("Pegawai ditolak")
 
-  /* ================= REJECT ================= */
+await loadData()
 
-  async function rejectPegawai(pegawaiId:string){
+}catch(err){
 
-    setLoading(true)
+console.error(err)
+alert("Gagal reject")
 
-    try{
+}
 
-      await supabase
-        .from("nilai_final")
-        .update({status:"rejected"})
-        .eq("pegawai_id",pegawaiId)
+setLoading(false)
 
-      alert("Pegawai ditolak")
+}
 
-      await getData()
+/* ================= UI ================= */
 
-    }catch(err){
+return(
 
-      console.error(err)
-      alert("Gagal reject")
+<div className="min-h-screen bg-[#0b1635] text-blue-100 px-8 py-10">
 
-    }
+<div className="max-w-6xl mx-auto space-y-10">
 
-    setLoading(false)
+{/* HEADER */}
 
-  }
+<div>
 
-  /* ================= UI ================= */
+<h1 className="text-3xl font-bold text-cyan-300 tracking-wide">
+Approval Nominasi
+</h1>
 
-  return(
+<p className="text-blue-300/70 mt-1">
+Review Nominations. Confirm the Best.
+</p>
 
-  <div className="min-h-screen bg-[#0b1635] text-blue-100 px-8 py-10">
+</div>
 
-    <div className="max-w-6xl mx-auto space-y-10">
+{/* DATA */}
 
-      {/* HEADER */}
+<div className="bg-[#1a2f6d]/80 border border-cyan-400/15 rounded-2xl p-10">
 
-      <div>
+<h2 className="text-xl font-bold mb-8 text-cyan-300">
+Daftar Nominasi
+</h2>
 
-        <h1 className="text-3xl font-bold text-cyan-300 tracking-wide">
-          Approval Nominasi
-        </h1>
+{data.length === 0 && (
+<p className="text-blue-300/60">
+Belum ada data nominasi dari hasil penilaian juri
+</p>
+)}
 
-        <p className="text-blue-300/70 mt-1">
-          Review Nominations. Confirm the Best.
-        </p>
+<div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
 
-      </div>
+{data.map((item)=>{
 
-      {/* LIST */}
+const pegawai = item.pegawai
 
-      <div className="bg-[#1a2f6d]/80 border border-cyan-400/15 rounded-2xl p-10">
+return(
 
-        <h2 className="text-xl font-bold mb-8 text-cyan-300">
-          Daftar Nominasi
-        </h2>
+<div
+key={item.id}
+className="bg-[#0f1c3f] border border-cyan-400/15 rounded-xl p-6 flex flex-col justify-between"
+>
 
-        {data.length === 0 && (
-          <p className="text-blue-300/60">
-            Belum ada data nominasi
-          </p>
-        )}
+<div>
 
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+<p className="text-sm text-cyan-300 uppercase">
 
-          {data.map((item)=>{
+{pegawai?.tim || "Tim tidak ditemukan"}
 
-            const pegawai = item.pegawai
+</p>
 
-            return(
+<h3 className="text-lg font-semibold text-white mt-1">
 
-            <div
-              key={item.id}
-              className="bg-[#0f1c3f] border border-cyan-400/15 rounded-xl p-6 flex flex-col justify-between"
-            >
+{pegawai?.nama || "Nama tidak ditemukan"}
 
-              <div>
+</h3>
 
-                <p className="text-sm text-cyan-300 uppercase">
-                  {pegawai?.tim || "-"}
-                </p>
+<p className="text-sm text-blue-300 mt-2">
+Total Nilai : {item.total_nilai}
+</p>
 
-                <h3 className="text-lg font-semibold text-white mt-1">
-                  {pegawai?.nama || "Nama tidak ditemukan"}
-                </h3>
+</div>
 
-                <p className="text-sm text-blue-300 mt-2">
-                  Total Nilai : {item.total_nilai}
-                </p>
+<div className="flex gap-3 mt-6">
 
-              </div>
+<button
+disabled={loading || !pegawai}
+onClick={()=>pegawai && approvePegawai(pegawai.id)}
+className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm py-2 rounded-lg"
+>
+Approve
+</button>
 
-              <div className="flex gap-3 mt-6">
+<button
+disabled={loading || !pegawai}
+onClick={()=>pegawai && rejectPegawai(pegawai.id)}
+className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm py-2 rounded-lg"
+>
+Reject
+</button>
 
-                <button
-                  disabled={loading}
-                  onClick={()=>approvePegawai(item.pegawai_id)}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm py-2 rounded-lg"
-                >
-                  Approve
-                </button>
+</div>
 
-                <button
-                  disabled={loading}
-                  onClick={()=>rejectPegawai(item.pegawai_id)}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm py-2 rounded-lg"
-                >
-                  Reject
-                </button>
+</div>
 
-              </div>
+)
 
-            </div>
+})}
 
-            )
+</div>
 
-          })}
+</div>
 
-        </div>
+</div>
 
-      </div>
+</div>
 
-    </div>
-
-  </div>
-
-  )
+)
 
 }

@@ -17,7 +17,7 @@ type HistoryItem = {
   tahun: number
   periode: string
   created_at: string
-  pegawai: Pegawai[]
+  pegawai: Pegawai
 }
 
 export default function HistoryPage() {
@@ -84,7 +84,7 @@ export default function HistoryPage() {
 
       <div className="max-w-6xl mx-auto space-y-10">
 
-        {/* ================= HEADER ================= */}
+        {/* HEADER */}
 
         <div>
 
@@ -98,7 +98,7 @@ export default function HistoryPage() {
 
         </div>
 
-        {/* ================= LOADING ================= */}
+        {/* LOADING */}
 
         {loading && (
           <div className="text-blue-300">
@@ -106,26 +106,17 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {/* ================= EMPTY ================= */}
+        {/* EMPTY */}
 
         {!loading && data.length === 0 && (
 
-          <div
-            className="
-            bg-[#1a2f6d]/80
-            border border-cyan-400/15
-            rounded-xl
-            p-10
-            text-center
-            text-blue-300
-            "
-          >
+          <div className="bg-[#1a2f6d]/80 border border-cyan-400/15 rounded-xl p-10 text-center text-blue-300">
             Belum ada pegawai teladan yang disetujui
           </div>
 
         )}
 
-        {/* ================= HISTORY LIST ================= */}
+        {/* HISTORY */}
 
         <div className="space-y-10">
 
@@ -133,54 +124,34 @@ export default function HistoryPage() {
 
             <div key={tahun}>
 
-              {/* ================= TAHUN ================= */}
-
               <h2 className="text-2xl font-bold text-cyan-300 mb-6">
                 Tahun {tahun}
               </h2>
-
-              {/* ================= GRID ================= */}
 
               <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
 
                 {list.map((item: HistoryItem) => {
 
-                  const pegawai = item.pegawai?.[0]
+                  const pegawai = item.pegawai
 
                   return (
 
                     <div
                       key={item.id}
-                      className="
-                      bg-[#1a2f6d]/80
-                      border border-cyan-400/15
-                      rounded-xl
-                      p-6
-                      shadow-lg
-                      flex flex-col
-                      justify-between
-                      "
+                      className="bg-[#1a2f6d]/80 border border-cyan-400/15 rounded-xl p-6 shadow-lg flex flex-col justify-between"
                     >
-
-                      {/* ================= BADGE ================= */}
 
                       <div className="text-xs text-cyan-300 uppercase mb-2">
                         Pegawai Teladan
                       </div>
 
-                      {/* ================= NAMA ================= */}
-
                       <h3 className="text-xl font-semibold text-white">
                         {pegawai?.nama}
                       </h3>
 
-                      {/* ================= TIM ================= */}
-
                       <p className="text-sm text-blue-300 mt-1">
                         Tim {pegawai?.tim}
                       </p>
-
-                      {/* ================= PERIODE ================= */}
 
                       <div className="mt-4 text-sm text-blue-200">
 
@@ -194,13 +165,9 @@ export default function HistoryPage() {
 
                       </div>
 
-                      {/* ================= FOOTER ================= */}
-
                       <div className="mt-6 text-xs text-blue-400">
-
                         Ditetapkan :{" "}
                         {new Date(item.created_at).toLocaleDateString("id-ID")}
-
                       </div>
 
                     </div>
