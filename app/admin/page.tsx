@@ -430,7 +430,7 @@ Nominasi Final
 
 {finalNominee.length === 0 && (
 <p className="text-blue-300/60">
-Belum ada nominasi final
+Data untuk disubmit ke Juri
 </p>
 )}
 
