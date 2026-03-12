@@ -17,7 +17,8 @@ import {
   X,
   LogOut,
   Bell,
-  User
+  User,
+  ChevronDown
 } from "lucide-react"
 
 export default function Sidebar() {
@@ -32,6 +33,8 @@ export default function Sidebar() {
   const [role, setRole] = useState<string>("")
   const [loadingRole, setLoadingRole] = useState(true)
 
+  const [openSertifikat, setOpenSertifikat] = useState(false)
+
   function isActive(path: string) {
     return pathname === path
   }
@@ -39,10 +42,6 @@ export default function Sidebar() {
   useEffect(() => {
     getProfile()
   }, [])
-
-  /* ===============================
-     AMBIL PROFILE + ROLE USER
-  =============================== */
 
   async function getProfile() {
 
@@ -78,10 +77,6 @@ export default function Sidebar() {
     router.push("/login")
   }
 
-  /* ===============================
-     LOADING ROLE
-  =============================== */
-
   if (loadingRole) {
     return null
   }
@@ -89,7 +84,7 @@ export default function Sidebar() {
   return (
     <>
 
-      {/* ================= MOBILE TOP BAR ================= */}
+      {/* MOBILE TOP BAR */}
 
       <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-[#0b1635] border-b border-cyan-400/10 flex items-center px-4 z-50">
 
@@ -103,7 +98,7 @@ export default function Sidebar() {
 
       </div>
 
-      {/* ================= OVERLAY ================= */}
+      {/* OVERLAY */}
 
       {mobileOpen && (
         <div
@@ -112,7 +107,7 @@ export default function Sidebar() {
         />
       )}
 
-      {/* ================= SIDEBAR ================= */}
+      {/* SIDEBAR */}
 
       <div
         className={`
@@ -132,14 +127,12 @@ export default function Sidebar() {
         {/* CLOSE MOBILE */}
 
         <div className="lg:hidden flex justify-end p-4">
-
           <button onClick={() => setMobileOpen(false)}>
             <X className="text-cyan-400" />
           </button>
-
         </div>
 
-        {/* ================= LOGO ================= */}
+        {/* LOGO */}
 
         <div className="flex flex-col items-center py-8 border-b border-cyan-400/10">
 
@@ -172,42 +165,58 @@ export default function Sidebar() {
 
         </div>
 
-        {/* ================= MENU ================= */}
+        {/* MENU */}
 
         <nav className="flex-1 px-3 py-6 space-y-2 text-sm">
 
           {role === "admin" && (
             <>
+
               {menuItem("/admin", "Dashboard", <LayoutDashboard size={18} />, collapsed, isActive)}
               {menuItem("/admin/input-nilai", "Input Nilai Final", <FileText size={18} />, collapsed, isActive)}
               {menuItem("/admin/upload", "Upload Excel", <Upload size={18} />, collapsed, isActive)}
               {menuItem("/admin/pegawai", "Kelola Pegawai", <Users size={18} />, collapsed, isActive)}
               {menuItem("/admin/laporan", "Generate Laporan", <FileText size={18} />, collapsed, isActive)}
+
+              {/* SERTIFIKAT DROPDOWN */}
+
+              <div>
+
+                <button
+                  onClick={() => setOpenSertifikat(!openSertifikat)}
+                  className="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <Award size={18} />
+                    {!collapsed && "Sertifikat"}
+                  </div>
+
+                  {!collapsed && <ChevronDown size={16} />}
+                </button>
+
+                {openSertifikat && !collapsed && (
+                  <div className="ml-8 mt-1 space-y-1">
+
+                    {menuItem("/admin/sertifikat/upload", "Upload Sertifikat", <Upload size={16} />, collapsed, isActive)}
+
+                    {menuItem("/admin/sertifikat/lihat", "Lihat Sertifikat", <FileText size={16} />, collapsed, isActive)}
+
+                  </div>
+                )}
+
+              </div>
+
               {menuItem("/admin/penilaian-juri", "Penilaian Juri", <Award size={18} />, collapsed, isActive)}
               {menuItem("/admin/notifikasi", "Notifikasi", <Bell size={18} />, collapsed, isActive)}
               {menuItem("/admin/approval", "Approval", <CheckCircle size={18} />, collapsed, isActive)}
               {menuItem("/admin/history", "Arsip / History", <History size={18} />, collapsed, isActive)}
-            </>
-          )}
 
-          {role === "juri" && (
-            <>
-              {menuItem("/juri", "Dashboard", <LayoutDashboard size={18} />, collapsed, isActive)}
-              {menuItem("/admin/penilaian-juri", "Penilaian Juri", <Award size={18} />, collapsed, isActive)}
-            </>
-          )}
-
-          {role === "verifikator" && (
-            <>
-              {menuItem("/verifikator", "Dashboard", <LayoutDashboard size={18} />, collapsed, isActive)}
-              {menuItem("/admin/approval", "Approval", <CheckCircle size={18} />, collapsed, isActive)}
-              {menuItem("/admin/history", "Arsip / History", <History size={18} />, collapsed, isActive)}
             </>
           )}
 
         </nav>
 
-        {/* ================= PROFILE ================= */}
+        {/* PROFILE */}
 
         <div className="px-3 py-4 border-t border-cyan-400/10">
 
@@ -240,13 +249,6 @@ export default function Sidebar() {
             )}
 
           </div>
-
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:block mt-4 w-full text-xs text-cyan-400/60 hover:text-cyan-300 transition"
-          >
-            {collapsed ? "Expand" : "Collapse"}
-          </button>
 
         </div>
 
