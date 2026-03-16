@@ -1,17 +1,25 @@
 "use client"
 
-export default function VerifikatorPage() {
-  return (
-    <div className="min-h-screen bg-[#0b1635] text-white flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-cyan-400 mb-4">
-          Dashboard Verifikator
-        </h1>
+export default function VerifikatorDashboard(){
 
-        <p className="text-blue-200">
-          Halaman verifikator sedang disiapkan.
+  return(
+
+    <div className="space-y-6">
+
+      <h1 className="text-2xl font-bold">
+        Dashboard Verifikator
+      </h1>
+
+      <div className="bg-gray-900 p-6 rounded-xl">
+
+        <p className="text-gray-400">
+          Silakan lakukan verifikasi terhadap hasil penilaian juri.
         </p>
+
       </div>
+
     </div>
+
   )
+
 }

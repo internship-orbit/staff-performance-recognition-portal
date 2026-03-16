@@ -1,19 +1,21 @@
 "use client"
 
-export default function JuriPage() {
-  return (
-    <div className="min-h-screen bg-[#0b1635] text-white flex items-center justify-center">
-      <div className="text-center">
+import JuriProgress from "./components/JuriProgress"
 
-        <h1 className="text-3xl font-bold text-cyan-400 mb-4">
-          Dashboard Juri
-        </h1>
+export default function DashboardJuri(){
 
-        <p className="text-blue-200">
-          Halaman penilaian juri akan ditampilkan di sini.
-        </p>
+  return(
 
-      </div>
+    <div className="space-y-6">
+
+      <h1 className="text-2xl font-bold">
+        Dashboard Juri
+      </h1>
+
+      <JuriProgress />
+
     </div>
+
   )
+
 }
