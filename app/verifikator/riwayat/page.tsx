@@ -1,53 +1,242 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 
-export default function RiwayatVerifikasi(){
+/* ================= TYPES ================= */
 
-  const [data,setData] = useState<any[]>([])
+type Pegawai = {
+  id: string
+  nama: string
+  tim: string
+}
+
+type HistoryItem = {
+  id: string
+  total_nilai: number
+  tahun: number
+  triwulan: number
+  created_at: string
+  pegawai: Pegawai[]
+}
+
+export default function HistoryPage() {
+
+  const [data,setData] = useState<HistoryItem[]>([])
+  const [loading,setLoading] = useState(true)
+
+  const [tahunList,setTahunList] = useState<number[]>([])
+  const [selectedTahun,setSelectedTahun] = useState<number | null>(null)
+
+  /* ================= LOAD DATA ================= */
 
   useEffect(()=>{
-
-    load()
-
+    loadHistory()
   },[])
 
-  async function load(){
+  async function loadHistory(){
 
-    const { data } = await supabase
-      .from("penilaian")
+    setLoading(true)
+
+    const {data:result,error} = await supabase
+      .from("history_penghargaan")
       .select(`
+        id,
+        nama,
+        tim,
         total_nilai,
-        status_verifikasi,
-        pegawai:pegawai_id(nama)
+        tahun,
+        triwulan,
+        created_at
       `)
+      .order("tahun",{ascending:false})
 
-    setData(data || [])
+    if(error){
+      console.error(error)
+      setLoading(false)
+      return
+    }
 
+    /* ================= NORMALIZE ================= */
+
+    const normalized: HistoryItem[] = (result ?? []).map((item:any)=>({
+      id: item.id,
+      total_nilai: item.total_nilai,
+      tahun: item.tahun,
+      triwulan: item.triwulan,
+      created_at: item.created_at,
+      pegawai: [{
+        id: "",
+        nama: item.nama,
+        tim: item.tim
+      }]
+    }))
+
+    setData(normalized)
+
+    /* ================= DAFTAR TAHUN ================= */
+
+    const years = [...new Set(normalized.map(i=>i.tahun))]
+
+    setTahunList(years)
+
+    if(years.length>0){
+      setSelectedTahun(years[0])
+    }
+
+    setLoading(false)
   }
+
+  /* ================= FILTER TAHUN ================= */
+
+  const filtered = data.filter(
+    item => item.tahun === selectedTahun
+  )
+
+  /* ================= GROUP BY TRIWULAN ================= */
+
+  const grouped = filtered.reduce((acc:Record<number,HistoryItem[]>,item)=>{
+
+    const tri = item.triwulan
+
+    if(!acc[tri]) acc[tri] = []
+
+    acc[tri].push(item)
+
+    return acc
+
+  },{})
+
+  /* ================= UI ================= */
 
   return(
 
-    <div>
+  <div className="min-h-screen bg-[#0b1635] text-blue-100 px-8 py-10">
 
-      <h1 className="text-2xl font-bold mb-6">
-        Riwayat Verifikasi
-      </h1>
+  <div className="max-w-6xl mx-auto space-y-10">
 
-      <ul className="space-y-2">
+  {/* HEADER */}
 
-        {data.map((d,i)=>(
-          <li key={i} className="bg-gray-900 p-4 rounded">
+  <div>
 
-            {d.pegawai.nama} - {d.total_nilai} ({d.status_verifikasi})
+  <h1 className="text-3xl font-bold text-cyan-300 tracking-wide">
+  Arsip Pegawai Teladan
+  </h1>
 
-          </li>
-        ))}
+  <p className="text-blue-300/70 mt-1">
+  Hall of Excellence. Celebrating Achievement.
+  </p>
 
-      </ul>
+  </div>
 
-    </div>
+  {/* FILTER TAHUN */}
+
+  <div className="flex gap-3 flex-wrap">
+
+  {tahunList.map((tahun)=>(
+  <button
+  key={tahun}
+  onClick={()=>setSelectedTahun(tahun)}
+  className={`px-4 py-2 rounded-lg text-sm transition
+  ${selectedTahun===tahun
+  ? "bg-cyan-400 text-[#0b1635] font-semibold"
+  : "bg-[#1a2f6d] hover:bg-[#223c8a]"
+  }`}
+  >
+  {tahun}
+  </button>
+  ))}
+
+  </div>
+
+  {/* LOADING */}
+
+  {loading && (
+  <p className="text-blue-300">
+  Loading history...
+  </p>
+  )}
+
+  {/* EMPTY */}
+
+  {!loading && filtered.length === 0 && (
+
+  <div className="bg-[#1a2f6d]/80 border border-cyan-400/15 rounded-xl p-10 text-center text-blue-300">
+  Belum ada pegawai teladan
+  </div>
+
+  )}
+
+  {/* TRIWULAN */}
+
+  <div className="space-y-10">
+
+  {Object.entries(grouped).map(([triwulan,list])=>(
+
+  <div key={triwulan}>
+
+  <h2 className="text-2xl font-bold text-cyan-300 mb-6">
+  Triwulan {triwulan}
+  </h2>
+
+  <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+  {list.map((item)=>{
+
+  const pegawai = item.pegawai?.[0]
+
+  return(
+
+  <div
+  key={item.id}
+  className="bg-[#1a2f6d]/80 border border-cyan-400/15 rounded-xl p-6 shadow-lg flex flex-col justify-between"
+  >
+
+  <div className="text-xs text-cyan-300 uppercase mb-2">
+  Pegawai Teladan
+  </div>
+
+  <h3 className="text-xl font-semibold text-white">
+  {pegawai?.nama ?? "Nama tidak ditemukan"}
+  </h3>
+
+  <p className="text-sm text-blue-300 mt-1">
+  Tim {pegawai?.tim ?? "-"}
+  </p>
+
+  <div className="mt-4 text-sm text-blue-200">
+
+  <p>
+  Triwulan : {item.triwulan}
+  </p>
+
+  <p>
+  Nilai : {item.total_nilai}
+  </p>
+
+  </div>
+
+  <div className="mt-6 text-xs text-blue-400">
+  Ditetapkan {new Date(item.created_at).toLocaleDateString("id-ID")}
+  </div>
+
+  </div>
+
+  )
+
+  })}
+
+  </div>
+
+  </div>
+
+  ))}
+
+  </div>
+
+  </div>
+
+  </div>
 
   )
 
