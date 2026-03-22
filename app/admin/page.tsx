@@ -23,6 +23,7 @@ loadRanking()
 loadStats()
 },[])
 
+
 /* =========================
 LOAD STATS CARD
 ========================= */
@@ -269,6 +270,34 @@ alert("Ranking berhasil dikirim ke verifikator")
 }
 
 /* =========================
+RESET
+========================= */
+
+async function handleResetPenilaian(){
+
+  const confirmReset = confirm(
+    "Yakin ingin memulai penilaian baru?\nSemua data proses penilaian akan dihapus."
+  )
+
+  if(!confirmReset) return
+
+  const { error } = await supabase
+    .rpc("reset_penilaian_baru")
+
+  if(error){
+    console.error(error)
+    alert("Gagal reset penilaian")
+    return
+  }
+
+  alert("Penilaian baru siap dimulai")
+
+  window.location.reload()
+
+}
+
+
+/* =========================
 GROUPING TIM
 ========================= */
 
@@ -507,9 +536,34 @@ Kirim ke Approval
 </button>
 
 </div>
+    {/* =========================
+    RESET PENILAIAN
+    ========================= */}
+
+    <div className="flex justify-end mt-10 px-8 pb-10">
+    <button
+        onClick={handleResetPenilaian}
+        className="
+        px-8 py-3
+        rounded-xl
+        bg-gradient-to-r
+        from-indigo-500
+        to-cyan-500
+        text-white
+        font-semibold
+        shadow-lg
+        hover:scale-105
+        transition
+        "
+    >
+        Buat Penilaian Baru
+    </button>
+    </div>
 
 </div>
 
 )
 
 }
+
+

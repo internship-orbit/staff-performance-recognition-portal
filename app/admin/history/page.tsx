@@ -11,15 +11,6 @@ type Pegawai = {
   tim: string
 }
 
-type RawHistoryItem = {
-  id: string
-  total_nilai: number
-  tahun: number
-  triwulan: number
-  created_at: string
-  pegawai: Pegawai | Pegawai[] | null
-}
-
 type HistoryItem = {
   id: string
   total_nilai: number
@@ -48,20 +39,16 @@ export default function HistoryPage() {
     setLoading(true)
 
     const {data:result,error} = await supabase
-      .from("nilai_final")
+      .from("history_penghargaan")
       .select(`
         id,
+        nama,
+        tim,
         total_nilai,
         tahun,
         triwulan,
-        created_at,
-        pegawai:pegawai_id(
-          id,
-          nama,
-          tim
-        )
+        created_at
       `)
-      .eq("status","approved")
       .order("tahun",{ascending:false})
 
     if(error){
@@ -70,27 +57,20 @@ export default function HistoryPage() {
       return
     }
 
-    const raw = (result as RawHistoryItem[]) ?? []
+    /* ================= NORMALIZE ================= */
 
-    /* ================= NORMALIZE DATA ================= */
-
-    const normalized: HistoryItem[] = raw.map(item=>{
-
-      let pegawaiArray: Pegawai[] = []
-
-      if(Array.isArray(item.pegawai)){
-        pegawaiArray = item.pegawai
-      }
-      else if(item.pegawai){
-        pegawaiArray = [item.pegawai]
-      }
-
-      return {
-        ...item,
-        pegawai: pegawaiArray
-      }
-
-    })
+    const normalized: HistoryItem[] = (result ?? []).map((item:any)=>({
+      id: item.id,
+      total_nilai: item.total_nilai,
+      tahun: item.tahun,
+      triwulan: item.triwulan,
+      created_at: item.created_at,
+      pegawai: [{
+        id: "",
+        nama: item.nama,
+        tim: item.tim
+      }]
+    }))
 
     setData(normalized)
 

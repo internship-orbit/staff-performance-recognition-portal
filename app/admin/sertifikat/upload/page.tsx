@@ -1,232 +1,276 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 
-export default function UploadSertifikatPage() {
-
-// ================= STATE =================
-const [namaPegawai, setNamaPegawai] = useState("")
-const [periode, setPeriode] = useState("Triwulan 1")
-const [tahun, setTahun] = useState(new Date().getFullYear())
-const [file, setFile] = useState<File | null>(null)
-const [loading, setLoading] = useState(false)
-
-// ================= HANDLE UPLOAD =================
-async function handleSubmit(e: React.FormEvent) {
-
-
-e.preventDefault()
-
-if (!namaPegawai || !file) {
-  alert("Lengkapi data terlebih dahulu")
-  return
+type PegawaiTeladan = {
+  id: string
+  pegawai_id: string
+  nama: string
+  tim: string
+  triwulan: number
+  tahun: number
+  periode_label: string
 }
 
-setLoading(true)
+export default function UploadSertifikatPage(){
 
-try {
+  const [pegawai,setPegawai] = useState<PegawaiTeladan | null>(null)
+  const [file,setFile] = useState<File | null>(null)
+  const [loading,setLoading] = useState(false)
+  const [loadingPegawai,setLoadingPegawai] = useState(true)
 
-  // buat nama file unik
-  const cleanName = file.name.replace(/\s+/g, "-")
-const fileName = Date.now() + "-" + encodeURIComponent(file.name)
+  /* ================= LOAD PEGAWAI TELADAN TERAKHIR ================= */
 
-  // ================= UPLOAD FILE KE STORAGE =================
-  const { error: uploadError } = await supabase.storage
-    .from("sertifikat")
-    .upload(fileName, file, {
-      cacheControl: "3600",
-      upsert: true
-    })
+  useEffect(()=>{
+    loadPegawaiTeladan()
+  },[])
 
-  if (uploadError) {
-    console.error(uploadError)
-    alert(uploadError.message)
-    setLoading(false)
-    return
+  async function loadPegawaiTeladan(){
+
+    setLoadingPegawai(true)
+
+    const { data, error } = await supabase
+      .from("history_penghargaan")
+      .select("*")
+      .order("created_at",{ ascending:false })
+      .limit(1)
+      .single()
+
+    if(error){
+      console.error(error)
+      setLoadingPegawai(false)
+      return
+    }
+
+    setPegawai(data)
+    setLoadingPegawai(false)
   }
 
-  // ================= AMBIL URL FILE =================
-  const { data } = supabase.storage
-    .from("sertifikat")
-    .getPublicUrl(fileName)
+  /* ================= HANDLE UPLOAD ================= */
 
-  const fileUrl = data.publicUrl
+  async function handleSubmit(e:React.FormEvent){
 
-  // ================= SIMPAN DATA KE DATABASE =================
-  const { error: insertError } = await supabase
-    .from("sertifikat")
-    .insert([
-      {
-        nama_pegawai: namaPegawai,
-        periode: periode,
-        tahun: tahun,
-        file_url: fileUrl
+    e.preventDefault()
+
+    if(!pegawai){
+      alert("Pegawai teladan belum tersedia")
+      return
+    }
+
+    if(!file){
+      alert("Silakan pilih file sertifikat")
+      return
+    }
+
+    setLoading(true)
+
+    try{
+
+    const cleanName =
+      file.name
+        .toLowerCase()
+        .replace(/\s+/g,"-")
+        .replace(/[^a-z0-9.-]/g,"")
+
+    const fileName =
+      Date.now() + "-" + cleanName
+
+      /* ================= UPLOAD STORAGE ================= */
+
+      const { error:uploadError } = await supabase.storage
+        .from("sertifikat")
+        .upload(fileName,file,{
+          cacheControl:"3600",
+          upsert:true
+        })
+
+      if(uploadError){
+        console.error(uploadError)
+        alert(uploadError.message)
+        setLoading(false)
+        return
       }
-    ])
 
-  if (insertError) {
-    console.error(insertError)
-    alert("Gagal menyimpan data")
-    setLoading(false)
-    return
+      /* ================= AMBIL URL ================= */
+
+      const { data:urlData } = supabase.storage
+        .from("sertifikat")
+        .getPublicUrl(fileName)
+
+      const fileUrl = urlData.publicUrl
+
+      /* ================= INSERT DATABASE ================= */
+
+      const { error:insertError } = await supabase
+        .from("sertifikat")
+        .insert([
+          {
+            pegawai_id: pegawai.pegawai_id,
+            periode: pegawai.periode_label,
+            tahun: pegawai.tahun,
+            file_url: fileUrl
+          }
+        ])
+
+      if(insertError){
+        console.error(insertError)
+        alert(insertError.message)
+        setLoading(false)
+        return
+      }
+
+      alert("Sertifikat berhasil diupload")
+
+      setFile(null)
+      setLoading(false)
+
+    }catch(err){
+
+      console.error(err)
+      alert("Terjadi kesalahan saat upload")
+      setLoading(false)
+
+    }
+
   }
 
-  alert("Sertifikat berhasil diupload")
+  /* ================= UI ================= */
 
-  // reset form
-  setNamaPegawai("")
-  setFile(null)
-  setLoading(false)
+  return(
 
-} catch (error) {
+  <div className="min-h-screen bg-[#0b1635] text-blue-100 px-8 py-10">
 
-  console.error(error)
-  alert("Terjadi kesalahan saat upload")
-  setLoading(false)
+    <div className="mb-8">
+      <h1 className="text-3xl font-bold text-cyan-300 tracking-wide">
+        Upload Sertifikat
+      </h1>
 
-}
+      <p className="text-blue-300/70 mt-1">
+        Final step penghargaan pegawai teladan
+      </p>
+    </div>
 
+    <div className="flex justify-center">
 
-}
+      <div className="w-full max-w-3xl bg-[#1a2f6d]/80 border border-cyan-400/20 rounded-2xl shadow-lg p-10">
 
-return (
+        {/* ================= LOADING PEGAWAI ================= */}
 
+        {loadingPegawai && (
+          <p className="text-blue-300">
+            Memuat pegawai teladan...
+          </p>
+        )}
 
-<div className="min-h-screen bg-[#0b1635] text-blue-100 px-8 py-10">
+        {!loadingPegawai && !pegawai && (
+          <div className="text-red-400">
+            Belum ada pegawai teladan ditetapkan
+          </div>
+        )}
 
-  {/* ================= HEADER ================= */}
-  <div className="mb-8">
+        {!loadingPegawai && pegawai && (
 
-    <h1 className="text-3xl font-bold text-cyan-300 tracking-wide">
-      Upload Sertifikat
-    </h1>
+        <form onSubmit={handleSubmit} className="space-y-6">
 
-    <p className="text-blue-300/70 mt-1">
-      Certificate Upload — Model Employee by Period & Year
-    </p>
+          {/* ================= NAMA ================= */}
 
-  </div>
+          <div>
+            <label className="block text-sm mb-2 text-cyan-200">
+              Pegawai Teladan
+            </label>
 
+            <input
+              value={pegawai.nama}
+              disabled
+              className="w-full bg-[#0f1c3f] border border-cyan-400/20 rounded-lg px-4 py-3"
+            />
+          </div>
 
-  {/* ================= CARD ================= */}
-  <div className="flex justify-center">
+          {/* ================= TIM ================= */}
 
-    <div
-      className="
-      w-full
-      max-w-3xl
-      bg-[#1a2f6d]/80
-      backdrop-blur-xl
-      border border-cyan-400/20
-      rounded-2xl
-      shadow-lg
-      p-10
-    "
-    >
+          <div>
+            <label className="block text-sm mb-2 text-cyan-200">
+              Tim
+            </label>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+            <input
+              value={pegawai.tim}
+              disabled
+              className="w-full bg-[#0f1c3f] border border-cyan-400/20 rounded-lg px-4 py-3"
+            />
+          </div>
 
-        {/* ================= NAMA PEGAWAI ================= */}
-        <div>
+          {/* ================= PERIODE ================= */}
 
-          <label className="block text-sm mb-2 text-cyan-200">
-            Nama Pegawai Teladan
-          </label>
+          <div>
+            <label className="block text-sm mb-2 text-cyan-200">
+              Periode
+            </label>
 
-          <input
-            type="text"
-            value={namaPegawai}
-            onChange={(e) => setNamaPegawai(e.target.value)}
-            placeholder="Masukkan nama pegawai teladan"
-            className="w-full bg-[#0f1c3f] border border-cyan-400/20 rounded-lg px-4 py-3 text-blue-100 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-          />
+            <input
+              value={pegawai.periode_label}
+              disabled
+              className="w-full bg-[#0f1c3f] border border-cyan-400/20 rounded-lg px-4 py-3"
+            />
+          </div>
 
-        </div>
+          {/* ================= TAHUN ================= */}
 
+          <div>
+            <label className="block text-sm mb-2 text-cyan-200">
+              Tahun
+            </label>
 
-        {/* ================= PERIODE ================= */}
-        <div>
+            <input
+              value={pegawai.tahun}
+              disabled
+              className="w-full bg-[#0f1c3f] border border-cyan-400/20 rounded-lg px-4 py-3"
+            />
+          </div>
 
-          <label className="block text-sm mb-2 text-cyan-200">
-            Periode
-          </label>
+          {/* ================= FILE ================= */}
 
-          <select
-            value={periode}
-            onChange={(e) => setPeriode(e.target.value)}
-            className="w-full bg-[#0f1c3f] border border-cyan-400/20 rounded-lg px-4 py-3 text-blue-100 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-          >
-            <option value="Triwulan 1">Triwulan 1</option>
-            <option value="Triwulan 2">Triwulan 2</option>
-            <option value="Triwulan 3">Triwulan 3</option>
-            <option value="Triwulan 4">Triwulan 4</option>
-          </select>
+          <div>
+            <label className="block text-sm mb-2 text-cyan-200">
+              Upload Sertifikat
+            </label>
 
-        </div>
+            <input
+              type="file"
+              accept=".pdf,.jpg,.png"
+              onChange={(e)=>{
+                if(e.target.files && e.target.files.length>0){
+                  setFile(e.target.files[0])
+                }
+              }}
+              className="w-full bg-[#0f1c3f] border border-cyan-400/20 rounded-lg px-4 py-3"
+            />
+          </div>
 
+          {/* ================= BUTTON ================= */}
 
-        {/* ================= TAHUN ================= */}
-        <div>
+          <div className="flex justify-end pt-4">
 
-          <label className="block text-sm mb-2 text-cyan-200">
-            Tahun
-          </label>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-8 py-3 rounded-lg bg-linear-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:scale-105 transition-all shadow-lg"
+            >
+              {loading ? "Uploading..." : "Upload Sertifikat"}
+            </button>
 
-          <input
-            type="number"
-            value={tahun}
-            onChange={(e) => setTahun(Number(e.target.value))}
-            className="w-full bg-[#0f1c3f] border border-cyan-400/20 rounded-lg px-4 py-3 text-blue-100 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-          />
+          </div>
 
-        </div>
+        </form>
 
+        )}
 
-        {/* ================= FILE ================= */}
-        <div>
-
-          <label className="block text-sm mb-2 text-cyan-200">
-            Upload Sertifikat
-          </label>
-
-          <input
-            type="file"
-            accept=".pdf,.jpg,.png"
-            onChange={(e) => {
-
-              if (e.target.files && e.target.files.length > 0) {
-                setFile(e.target.files[0])
-              }
-
-            }}
-            className="w-full bg-[#0f1c3f] border border-cyan-400/20 rounded-lg px-4 py-3 text-blue-100"
-          />
-
-        </div>
-
-
-        {/* ================= BUTTON ================= */}
-        <div className="flex justify-end pt-4">
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-8 py-3 rounded-lg bg-linear-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:scale-105 transition-all shadow-lg"
-          >
-            {loading ? "Uploading..." : "Upload Sertifikat"}
-          </button>
-
-        </div>
-
-      </form>
+      </div>
 
     </div>
 
   </div>
 
-</div>
-
-
-)
+  )
 }

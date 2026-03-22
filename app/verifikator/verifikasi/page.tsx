@@ -6,45 +6,28 @@ import { supabase } from "@/lib/supabaseClient"
 /* ================= TYPES ================= */
 
 type Pegawai = {
-id: string
-nama: string
-tim: string
+  id: string
+  nama: string
+  tim: string
 }
 
 type Nominasi = {
-id: string
-total_nilai: number
-pegawai: Pegawai | null
+  id: string
+  total_nilai: number
+  pegawai: Pegawai | null
 }
 
 export default function ApprovalPage(){
 
 const [data,setData] = useState<Nominasi[]>([])
 const [loading,setLoading] = useState(false)
-const [isLocked,setIsLocked] = useState(false)
-
-useEffect(()=>{
-loadData()
-checkApprovalLock()
-},[])
-
-/* ================= CEK HISTORY/ RIWAYAT ================= */
-async function checkApprovalLock(){
-
-const {data,error} = await supabase
-.from("history_penghargaan")
-.select("id")
-.eq("tahun",2026)
-.eq("triwulan",1)
-.limit(1)
-
-if(data && data.length > 0){
-setIsLocked(true)
-}
-
-}
+const [approvedId,setApprovedId] = useState<string | null>(null)
 
 /* ================= LOAD DATA ================= */
+
+useEffect(()=>{
+  loadData()
+},[])
 
 async function loadData(){
 
@@ -71,19 +54,17 @@ setData([])
 return
 }
 
-/* mapping aman */
-
 const mapped:Nominasi[] = data.map((item:any)=>({
-
 id:item.id,
 total_nilai:item.total_nilai,
 pegawai:item.pegawai ?? null
-
 }))
 
 setData(mapped)
 
 }
+
+/* ================= APPROVE ================= */
 
 async function approvePegawai(item:Nominasi){
 
@@ -91,7 +72,32 @@ setLoading(true)
 
 try{
 
-/* ================= SIMPAN KE HISTORY PERMANEN ================= */
+/* ================= AMBIL PERIODE DARI NILAI FINAL ================= */
+
+const { data:periodeNilai, error:periodeError } = await supabase
+  .from("nilai_final")
+  .select("periode_bulan, tahun")
+  .eq("pegawai_id", item.pegawai?.id)
+  .order("periode_bulan",{ascending:false})
+  .limit(1)
+  .single()
+
+if(periodeError || !periodeNilai){
+  alert("Periode nilai tidak ditemukan")
+  setLoading(false)
+  return
+}
+
+/* ================= HITUNG TRIWULAN ================= */
+
+const bulan = new Date(periodeNilai.periode_bulan).getMonth() + 1
+
+let triwulanAktif = 1
+if(bulan >=4 && bulan <=6) triwulanAktif = 2
+else if(bulan >=7 && bulan <=9) triwulanAktif = 3
+else if(bulan >=10) triwulanAktif = 4
+
+/* ================= SIMPAN KE HISTORY ================= */
 
 await supabase
 .from("history_penghargaan")
@@ -100,19 +106,17 @@ pegawai_id: item.pegawai?.id,
 nama: item.pegawai?.nama,
 tim: item.pegawai?.tim,
 total_nilai: item.total_nilai,
-triwulan: 1,          // nanti bisa dynamic dari tabel periode
-tahun: 2026,
-periode_label: "Triwulan 1 2026"
+triwulan: triwulanAktif,
+tahun: periodeNilai.tahun,
+periode_label: `Triwulan ${triwulanAktif} ${periodeNilai.tahun}`
 })
 
-/* ================= SET APPROVED ================= */
+/* ================= SET STATUS ================= */
 
 await supabase
 .from("nilai_final")
 .update({status:"approved"})
 .eq("pegawai_id",item.pegawai?.id)
-
-/* ================= REJECT SEMUA YANG LAIN ================= */
 
 await supabase
 .from("nilai_final")
@@ -120,6 +124,8 @@ await supabase
 .neq("pegawai_id",item.pegawai?.id)
 
 alert("Pegawai Teladan berhasil ditetapkan")
+
+setApprovedId(item.id)
 
 await loadData()
 
@@ -142,8 +148,6 @@ return(
 
 <div className="max-w-6xl mx-auto space-y-10">
 
-{/* HEADER */}
-
 <div>
 
 <h1 className="text-3xl font-bold text-cyan-300 tracking-wide">
@@ -155,8 +159,6 @@ Review Nominations. Confirm the Best.
 </p>
 
 </div>
-
-{/* DATA */}
 
 <div className="bg-[#1a2f6d]/80 border border-cyan-400/15 rounded-2xl p-10">
 
@@ -186,15 +188,11 @@ className="bg-[#0f1c3f] border border-cyan-400/15 rounded-xl p-6 flex flex-col j
 <div>
 
 <p className="text-sm text-cyan-300 uppercase">
-
 {pegawai?.tim || "Tim tidak ditemukan"}
-
 </p>
 
 <h3 className="text-lg font-semibold text-white mt-1">
-
 {pegawai?.nama || "Nama tidak ditemukan"}
-
 </h3>
 
 <p className="text-sm text-blue-300 mt-2">
@@ -206,15 +204,15 @@ Total Nilai : {item.total_nilai}
 <div className="flex gap-3 mt-6">
 
 <button
-disabled={loading || !pegawai || isLocked}
+disabled={loading || !pegawai || approvedId !== null}
 onClick={()=>approvePegawai(item)}
-className={`flex-1 text-white text-sm py-2 rounded-lg
-${isLocked
-? "bg-gray-500 cursor-not-allowed"
-: "bg-green-600 hover:bg-green-700"
+className={`flex-1 text-white text-sm py-2 rounded-lg transition
+${approvedId !== null
+  ? "bg-gray-500 cursor-not-allowed"
+  : "bg-green-600 hover:bg-green-700"
 }`}
 >
-{isLocked ? "Sudah Ditentukan" : "Approve"}
+{approvedId !== null ? "Sudah Ditentukan" : "Approve"}
 </button>
 
 </div>
