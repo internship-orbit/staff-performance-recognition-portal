@@ -1,7 +1,6 @@
 "use client"
 
-import JuriSidebar from "./components/JuriSidebar"
-import JuriHeader from "./components/JuriHeader"
+import Sidebar from "@/app/admin/components/sidebar"
 
 export default function JuriLayout({
   children,
@@ -9,17 +8,22 @@ export default function JuriLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen bg-gray-950 text-white">
+    <div className="flex bg-[#050b1f] min-h-screen">
 
-      <JuriSidebar />
+      {/* SIDEBAR */}
+      <Sidebar />
 
-      <div className="flex-1 flex flex-col">
+      {/* CONTENT */}
+      <div className="flex-1 lg:ml-64 px-6 sm:px-10 py-10 bg-[#0b1635]">
 
-        <JuriHeader />
+        {/* CONTAINER CENTER (INI KUNCINYA) */}
+        <div className="max-w-[1400px] mx-auto w-full">
 
-        <main className="p-6">
-          {children}
-        </main>
+          <div className="mt-6 space-y-6">
+            {children}
+          </div>
+
+        </div>
 
       </div>
 

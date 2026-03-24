@@ -1,32 +1,31 @@
 "use client"
 
-import VerifikatorSidebar from "./components/VerifikatorSidebar"
-import VerifikatorHeader from "./components/VerifikatorHeader"
+import Sidebar from "@/app/admin/components/sidebar"
 
 export default function VerifikatorLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-
   return (
+    <div className="flex bg-[#050b1f] min-h-screen">
 
-    <div className="flex min-h-screen bg-gray-950 text-white">
+      {/* SIDEBAR */}
+      <Sidebar />
 
-      <VerifikatorSidebar/>
+      {/* CONTENT AREA */}
+      <div className="flex-1 lg:ml-64 px-6 sm:px-10 py-10 bg-[#0b1635]">
 
-      <div className="flex-1 flex flex-col">
+        <div className="max-w-[1400px] mx-auto">
 
-        <VerifikatorHeader/>
+          <div className="space-y-6">
+            {children}
+          </div>
 
-        <main className="p-6">
-          {children}
-        </main>
+        </div>
 
       </div>
 
     </div>
-
   )
-
 }

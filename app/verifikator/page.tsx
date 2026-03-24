@@ -1,21 +1,24 @@
 "use client"
 
-export default function VerifikatorDashboard(){
+import Header from "@/app/admin/components/header"
+
+export default function DashboardVerifikator(){
 
   return(
 
     <div className="space-y-6">
 
+      <Header
+        title="Dashboard Verifikator"
+        subtitle="Verifikasi Penilaian Pegawai"
+      />
+
       <h1 className="text-2xl font-bold">
         Dashboard Verifikator
       </h1>
 
-      <div className="bg-gray-900 p-6 rounded-xl">
-
-        <p className="text-gray-400">
-          Silakan lakukan verifikasi terhadap hasil penilaian juri.
-        </p>
-
+      <div className="bg-[#0f1c3f] p-6 rounded-xl">
+        Silakan lakukan verifikasi terhadap hasil penilaian juri.
       </div>
 
     </div>

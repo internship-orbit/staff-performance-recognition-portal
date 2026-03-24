@@ -214,6 +214,23 @@ export default function Sidebar() {
             </>
           )}
 
+          {role === "juri" && (
+            <>
+              {menuItem("/juri", "Dashboard", <LayoutDashboard size={18} />, collapsed, isActive)}
+              {menuItem("/juri/penilaian", "Penilaian", <Award size={18} />, collapsed, isActive)}
+              {menuItem("/juri/riwayat", "Riwayat", <History size={18} />, collapsed, isActive)}
+              {menuItem("/juri/profil", "Profil", <User size={18} />, collapsed, isActive)}
+            </>
+          )}
+
+          {role === "verifikator" && (
+            <>
+              {menuItem("/verifikator", "Dashboard", <LayoutDashboard size={18} />, collapsed, isActive)}
+              {menuItem("/verifikator/verifikasi", "Verifikasi Nilai", <CheckCircle size={18} />, collapsed, isActive)}
+              {menuItem("/verifikator/riwayat", "Riwayat", <History size={18} />, collapsed, isActive)}
+            </>
+          )}
+
         </nav>
 
         {/* PROFILE */}

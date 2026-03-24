@@ -17,7 +17,6 @@ export default function UploadPage() {
   }, [])
 
   async function getUploadedFiles() {
-
     const { data } = await supabase
       .from("excel_uploads")
       .select("*")
@@ -63,14 +62,40 @@ export default function UploadPage() {
     alert("File berhasil diupload!")
   }
 
+  async function handleDelete(file: any) {
+
+    const confirmDelete = confirm("Yakin ingin menghapus file ini?")
+    if (!confirmDelete) return
+
+    try {
+
+      const filePath = file.file_url.split("/").pop()
+
+      await supabase.storage
+        .from("doc-pegawai")
+        .remove([filePath])
+
+      await supabase
+        .from("excel_uploads")
+        .delete()
+        .eq("id", file.id)
+
+      alert("File berhasil dihapus")
+
+      getUploadedFiles()
+
+    } catch {
+      alert("Gagal menghapus file")
+    }
+  }
+
   return (
 
     <div className="min-h-screen bg-[#0b1635] text-blue-100 px-6 sm:px-10 py-10">
 
       <div className="max-w-6xl mx-auto space-y-10">
 
-        {/* ================= HEADER SIMPLE ================= */}
-
+        {/* HEADER */}
         <div>
           <h1 className="text-3xl font-bold text-cyan-300">
             Upload File Excel
@@ -80,18 +105,8 @@ export default function UploadPage() {
           </p>
         </div>
 
-        {/* ================= UPLOAD CARD ================= */}
-
-        <div className="
-          bg-[#1a2f6d]/80
-          backdrop-blur-xl
-          border border-cyan-400/15
-          rounded-2xl
-          shadow-lg
-          p-8
-        ">
-
-          {/* DROP ZONE */}
+        {/* UPLOAD CARD */}
+        <div className="bg-[#1a2f6d]/80 backdrop-blur-xl border border-cyan-400/15 rounded-2xl shadow-lg p-8">
 
           <div className="mb-6">
 
@@ -99,22 +114,7 @@ export default function UploadPage() {
               Pilih File Excel (.xlsx / .xls)
             </label>
 
-            <label className="
-              flex
-              flex-col
-              items-center
-              justify-center
-              w-full
-              h-36
-              border-2
-              border-dashed
-              border-cyan-400/30
-              rounded-xl
-              cursor-pointer
-              bg-[#0f1c3f]
-              hover:bg-[#142454]
-              transition
-            ">
+            <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-cyan-400/30 rounded-xl cursor-pointer bg-[#0f1c3f] hover:bg-[#142454] transition">
 
               <div className="flex flex-col items-center text-center px-4">
 
@@ -148,20 +148,11 @@ export default function UploadPage() {
 
           </div>
 
-          {/* BUTTON */}
-
           <div className="flex justify-between items-center">
 
             <button
               onClick={() => router.push("/admin")}
-              className="
-                px-6 py-2
-                rounded-lg
-                border border-cyan-400/30
-                text-cyan-300
-                hover:bg-cyan-500/10
-                transition
-              "
+              className="px-6 py-2 rounded-lg border border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/10 transition"
             >
               Kembali
             </button>
@@ -169,18 +160,7 @@ export default function UploadPage() {
             <button
               onClick={handleUpload}
               disabled={uploading}
-              className="
-                px-6 py-2
-                rounded-lg
-                bg-linear-to-r
-                from-cyan-500
-                to-blue-600
-                text-white
-                font-semibold
-                hover:scale-105
-                transition-all
-                shadow-lg
-              "
+              className="px-6 py-2 rounded-lg bg-linear-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:scale-105 transition-all shadow-lg"
             >
               {uploading ? "Uploading..." : "Upload File"}
             </button>
@@ -189,16 +169,8 @@ export default function UploadPage() {
 
         </div>
 
-        {/* ================= FILE LIST ================= */}
-
-        <div className="
-          bg-[#1a2f6d]/80
-          backdrop-blur-xl
-          border border-cyan-400/15
-          rounded-2xl
-          shadow-lg
-          p-8
-        ">
+        {/* FILE LIST */}
+        <div className="bg-[#1a2f6d]/80 backdrop-blur-xl border border-cyan-400/15 rounded-2xl shadow-lg p-8">
 
           <h2 className="text-xl font-bold mb-6 text-cyan-300">
             File Yang Sudah Diupload
@@ -216,48 +188,41 @@ export default function UploadPage() {
 
               <div
                 key={f.id}
-                className="
-                  flex
-                  flex-col
-                  md:flex-row
-                  md:items-center
-                  md:justify-between
-                  gap-3
-                  p-4
-                  bg-[#0f1c3f]
-                  rounded-lg
-                  border border-cyan-400/10
-                "
+                className="flex items-start justify-between gap-4 p-4 bg-[#0f1c3f] rounded-lg border border-cyan-400/10"
               >
 
-                <div>
-                  <p className="font-semibold text-white">
+                {/* TEXT */}
+                <div className="flex-1 min-w-0">
+
+                  <p className="font-semibold text-white break-words">
                     {f.file_name}
                   </p>
 
-                  <p className="text-xs text-blue-300/70">
+                  <p className="text-xs text-blue-300/70 mt-1">
                     {new Date(f.uploaded_at).toLocaleString()}
                   </p>
+
                 </div>
 
-                <a
-                  href={f.file_url}
-                  target="_blank"
-                  className="
-                    px-4 py-1.5
-                    text-sm
-                    rounded-lg
-                    bg-linear-to-r
-                    from-purple-500
-                    to-cyan-500
-                    text-white
-                    hover:scale-105
-                    transition
-                    self-start md:self-auto
-                  "
-                >
-                  Lihat File
-                </a>
+                {/* ACTION */}
+                <div className="flex items-center gap-2 shrink-0">
+
+                  <a
+                    href={f.file_url}
+                    target="_blank"
+                    className="px-4 py-1.5 text-sm rounded-lg bg-linear-to-r from-purple-500 to-cyan-500 text-white hover:scale-105 transition"
+                  >
+                    Lihat File
+                  </a>
+
+                  <button
+                    onClick={() => handleDelete(f)}
+                    className="px-3 py-1.5 text-sm rounded-lg bg-red-500/80 hover:bg-red-600 text-white transition"
+                  >
+                    ✕
+                  </button>
+
+                </div>
 
               </div>
 
