@@ -18,7 +18,9 @@ export default function DashboardJuri(){
         Dashboard Juri
       </h1>
 
-      <JuriProgress />
+      <div className="bg-[#0f1c3f] p-6 rounded-xl">
+        Silakan lakukan penilaian terhadap kandidat pegawai teladan.
+      </div>
 
     </div>
 

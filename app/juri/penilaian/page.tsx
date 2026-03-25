@@ -98,24 +98,62 @@ export default function PenilaianJuriPage() {
     setShowModal(true)
   }
 
-  async function submitNilai() {
-    if (!selectedPegawai || !selectedJuri) return
+    async function submitNilai() {
+      if (!selectedPegawai || !selectedJuri) return
 
-    await supabase.from("penilaian").upsert(
-      {
-        pegawai_id: selectedPegawai.id,
-        juri_id: selectedJuri.id,
-        total_nilai: Number(nilai),
-      },
-      {
-        onConflict: "pegawai_id,juri_id",
+      /* ================= SIMPAN NILAI JURI ================= */
+
+      const { error } = await supabase.from("penilaian").upsert(
+        {
+          pegawai_id: selectedPegawai.id,
+          juri_id: selectedJuri.id,
+          total_nilai: Number(nilai),
+        },
+        {
+          onConflict: "pegawai_id,juri_id",
+        }
+      )
+
+      if (error) {
+        alert("Gagal menyimpan nilai")
+        return
       }
-    )
 
-    setShowModal(false)
-    setNilai("")
-    fetchPenilaian()
-  }
+      /* ================= HITUNG ULANG RATA ================= */
+
+      const { data: allNilai } = await supabase
+        .from("penilaian")
+        .select("total_nilai")
+        .eq("pegawai_id", selectedPegawai.id)
+
+      if (allNilai && allNilai.length > 0) {
+
+        const total = allNilai.reduce(
+          (sum, n) => sum + Number(n.total_nilai),
+          0
+        )
+
+        const rata = Number((total / allNilai.length).toFixed(1))
+
+        /* ================= UPDATE NOMINASI FINAL ================= */
+
+        await supabase
+          .from("nominasi_final")
+          .update({
+            total_nilai: rata
+          })
+          .eq("pegawai_id", selectedPegawai.id)
+
+      }
+
+      /* ================= REFRESH UI ================= */
+
+      setShowModal(false)
+      setNilai("")
+      await fetchPenilaian()
+    }
+  
+
 
   async function hapusNilai() {
     if (!selectedPegawai || !selectedJuri) return

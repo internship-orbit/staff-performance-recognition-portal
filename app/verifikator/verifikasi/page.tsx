@@ -22,45 +22,62 @@ export default function ApprovalPage(){
 const [data,setData] = useState<Nominasi[]>([])
 const [loading,setLoading] = useState(false)
 const [approvedId,setApprovedId] = useState<string | null>(null)
+const [kipappFiles,setKipappFiles] = useState<any[]>([])
 
-/* ================= LOAD DATA ================= */
+/* ================= LOAD DATA - LOAD KIPAPP ================= */
 
 useEffect(()=>{
   loadData()
+  loadKipApp()
 },[])
 
-async function loadData(){
+  async function loadData(){
+
+  const {data,error} = await supabase
+  .from("nominasi_final")
+  .select(`
+  id,
+  total_nilai,
+  pegawai:pegawai_id (
+  id,
+  nama,
+  tim
+  )
+  `)
+  .order("total_nilai",{ascending:false})
+
+  if(error){
+  console.error("Error load approval:",error)
+  return
+  }
+
+  if(!data){
+  setData([])
+  return
+  }
+
+  const mapped:Nominasi[] = data.map((item:any)=>({
+  id:item.id,
+  total_nilai:item.total_nilai,
+  pegawai:item.pegawai ?? null
+  }))
+
+  setData(mapped)
+
+  }
+
+async function loadKipApp(){
 
 const {data,error} = await supabase
-.from("nominasi_final")
-.select(`
-id,
-total_nilai,
-pegawai:pegawai_id (
-id,
-nama,
-tim
-)
-`)
-.order("total_nilai",{ascending:false})
+.from("kipapp")
+.select("*")
 
 if(error){
-console.error("Error load approval:",error)
+console.error("Error load kipapp:",error)
 return
 }
 
-if(!data){
-setData([])
-return
-}
-
-const mapped:Nominasi[] = data.map((item:any)=>({
-id:item.id,
-total_nilai:item.total_nilai,
-pegawai:item.pegawai ?? null
-}))
-
-setData(mapped)
+setKipappFiles(data || [])
 
 }
 
@@ -140,6 +157,21 @@ setLoading(false)
 
 }
 
+/* ================= HELPER ================= */
+
+function getKipAppUrl(pegawaiId?:string){
+
+if(!pegawaiId) return null
+
+const doc = kipappFiles.find(
+(k)=>k.pegawai_id === pegawaiId
+)
+
+return doc?.file_url || null
+
+}
+
+
 /* ================= UI ================= */
 
 return(
@@ -198,6 +230,30 @@ className="bg-[#0f1c3f] border border-cyan-400/15 rounded-xl p-6 flex flex-col j
 <p className="text-sm text-blue-300 mt-2">
 Total Nilai : {item.total_nilai}
 </p>
+
+{(() => {
+
+const kipUrl = getKipAppUrl(pegawai?.id)
+
+if(kipUrl){
+return (
+<a
+href={kipUrl}
+target="_blank"
+className="inline-block mt-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg text-white text-sm font-semibold transition"
+>
+📄 Lihat KipApp
+</a>
+)
+}
+
+return (
+<p className="text-xs text-red-400 mt-4">
+Dokumen KipApp belum tersedia
+</p>
+)
+
+})()}
 
 </div>
 

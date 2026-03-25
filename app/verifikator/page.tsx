@@ -18,7 +18,7 @@ export default function DashboardVerifikator(){
       </h1>
 
       <div className="bg-[#0f1c3f] p-6 rounded-xl">
-        Silakan lakukan verifikasi terhadap hasil penilaian juri.
+        Silakan melakukan verifikasi terhadap hasil penilaian juri.
       </div>
 
     </div>
