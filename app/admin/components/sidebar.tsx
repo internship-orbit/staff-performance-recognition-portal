@@ -34,6 +34,7 @@ export default function Sidebar() {
   const [loadingRole, setLoadingRole] = useState(true)
 
   const [openSertifikat, setOpenSertifikat] = useState(false)
+  const [openUpload, setOpenUpload] = useState(false)
 
   function isActive(path: string) {
     return pathname === path
@@ -174,7 +175,6 @@ export default function Sidebar() {
 
               {menuItem("/admin", "Dashboard", <LayoutDashboard size={18} />, collapsed, isActive)}
               {menuItem("/admin/input-nilai", "Input Nilai Final", <FileText size={18} />, collapsed, isActive)}
-              {menuItem("/admin/upload", "Upload Excel", <Upload size={18} />, collapsed, isActive)}
               {menuItem("/admin/pegawai", "Kelola Pegawai", <Users size={18} />, collapsed, isActive)}
               {menuItem("/admin/laporan", "Generate Laporan", <FileText size={18} />, collapsed, isActive)}
 
@@ -200,6 +200,46 @@ export default function Sidebar() {
                     {menuItem("/admin/sertifikat/upload", "Upload Sertifikat", <Upload size={16} />, collapsed, isActive)}
 
                     {menuItem("/admin/sertifikat/lihat", "Lihat Sertifikat", <FileText size={16} />, collapsed, isActive)}
+
+                  </div>
+                )}
+
+              </div>
+
+              {/* UPLOAD DROPDOWN */}
+
+              <div>
+
+                <button
+                  onClick={() => setOpenUpload(!openUpload)}
+                  className="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <Upload size={18} />
+                    {!collapsed && "Upload"}
+                  </div>
+
+                  {!collapsed && <ChevronDown size={16} />}
+                </button>
+
+                {openUpload && !collapsed && (
+                  <div className="ml-8 mt-1 space-y-1">
+
+                    {menuItem(
+                      "/admin/upload/excel",
+                      "Upload Excel",
+                      <Upload size={16} />,
+                      collapsed,
+                      isActive
+                    )}
+
+                    {menuItem(
+                      "/admin/upload/kipapp",
+                      "Upload KipApp",
+                      <FileText size={16} />,
+                      collapsed,
+                      isActive
+                    )}
 
                   </div>
                 )}

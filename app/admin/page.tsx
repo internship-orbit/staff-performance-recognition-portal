@@ -203,7 +203,7 @@ return
 }
 
 await supabase
-.from("nominasi_final")
+.from("nominasi_juri")
 .delete()
 .neq("id","00000000-0000-0000-0000-000000000000")
 
@@ -216,7 +216,7 @@ total_nilai:item.total_nilai
 }))
 
 const {error} = await supabase
-.from("nominasi_final")
+.from("nominasi_juri")
 .insert(dataInsert)
 
 if(error){
@@ -251,7 +251,7 @@ const dataInsert = ranking.map((item:any)=>({
 
 pegawai_id:item.pegawai_id,
 tim:item.tim,
-total_nilai:item.nilai
+total_nilai:item.nilai,
 
 }))
 

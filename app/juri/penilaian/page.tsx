@@ -27,20 +27,30 @@ export default function PenilaianJuriPage() {
   const [selectedJuri, setSelectedJuri] = useState<Juri | null>(null)
   const [nilai, setNilai] = useState("")
   const [showModal, setShowModal] = useState(false)
+  const [kipappFiles, setKipappFiles] = useState<any[]>([])
 
   useEffect(() => {
+
     fetchData()
+
+    const interval = setInterval(() => {
+      fetchKipApp()
+    }, 5000) // refresh tiap 5 detik
+
+    return () => clearInterval(interval)
+
   }, [])
 
   async function fetchData() {
     await fetchNominasi()
     await fetchJuri()
     await fetchPenilaian()
+    await fetchKipApp()
   }
 
   async function fetchNominasi() {
     const { data } = await supabase
-      .from("nominasi_final")
+      .from("nominasi_juri")
       .select(`
         id,
         pegawai:pegawai_id (
@@ -61,6 +71,14 @@ export default function PenilaianJuriPage() {
   async function fetchPenilaian() {
     const { data } = await supabase.from("penilaian").select("*")
     if (data) setPenilaian(data)
+  }
+
+  async function fetchKipApp() {
+    const { data } = await supabase
+      .from("kipapp")
+      .select("*")
+
+    if (data) setKipappFiles(data)
   }
 
   function openModal(juri: Juri, pegawai: Pegawai) {
@@ -153,6 +171,13 @@ export default function PenilaianJuriPage() {
     return rankMap
   }
 
+  function getKipAppUrl(pegawaiId: string) {
+    const doc = kipappFiles.find(
+      (k) => k.pegawai_id === pegawaiId
+    )
+    return doc?.file_url
+  }
+
   const peringkat = hitungPeringkat()
 
   return (
@@ -178,6 +203,28 @@ export default function PenilaianJuriPage() {
             <h2 className="text-xl font-bold mb-4">
               {item.pegawai.nama}
             </h2>
+
+            {(() => {
+              const kipUrl = getKipAppUrl(item.pegawai.id)
+
+              if (kipUrl) {
+                return (
+                  <a
+                    href={kipUrl}
+                    target="_blank"
+                    className="inline-block mb-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg text-white text-sm font-semibold transition"
+                  >
+                    📄 Lihat KipApp
+                  </a>
+                )
+              }
+
+              return (
+                <p className="text-xs text-red-400 mb-4">
+                  Dokumen KipApp belum tersedia
+                </p>
+              )
+            })()}
 
             <div className="grid grid-cols-10 gap-3">
               {juriList.map((juri) => {
