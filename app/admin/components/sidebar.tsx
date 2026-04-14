@@ -1,340 +1,198 @@
 "use client"
 
-import Link from "next/link"
-import { useState, useEffect } from "react"
-import { usePathname, useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabaseClient"
-
 import {
-  LayoutDashboard,
-  FileText,
-  Upload,
-  Users,
   Award,
-  CheckCircle,
+  BarChart3,
+  Bell,
+  CheckCheck,
+  ClipboardPenLine,
+  FileSpreadsheet,
+  Gauge,
   History,
   Menu,
+  ShieldCheck,
+  Users,
   X,
-  LogOut,
-  Bell,
-  User,
-  ChevronDown
 } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useEffect, useState, type ComponentType } from "react"
 
-export default function Sidebar() {
+type NavItem = {
+  label: string
+  href: string
+  icon: ComponentType<{ className?: string }>
+}
 
-  const pathname = usePathname()
-  const router = useRouter()
+const sections: { title: string; items: NavItem[] }[] = [
+  {
+    title: "Utama",
+    items: [
+      { label: "Dashboard", href: "/admin", icon: Gauge },
+      { label: "Data Pegawai", href: "/admin/pegawai", icon: Users },
+      { label: "Input Nilai", href: "/admin/input-nilai", icon: ClipboardPenLine },
+      { label: "Ranking", href: "/admin/ranking", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "Seleksi",
+    items: [
+      { label: "Monitoring Approval", href: "/admin/approval", icon: CheckCheck },
+      { label: "Penilaian Juri", href: "/admin/penilaian-juri", icon: ShieldCheck },
+      { label: "Riwayat", href: "/admin/history", icon: History },
+    ],
+  },
+  {
+    title: "Dokumen",
+    items: [
+      { label: "Upload Excel", href: "/admin/upload/excel", icon: FileSpreadsheet },
+      { label: "Sertifikat", href: "/admin/sertifikat/upload", icon: Award },
+      { label: "Notifikasi", href: "/admin/notifikasi", icon: Bell },
+    ],
+  },
+]
 
-  const [collapsed, setCollapsed] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+function isActive(pathname: string, href: string) {
+  if (href === "/admin") return pathname === "/admin"
+  return pathname.startsWith(href)
+}
 
-  const [profile, setProfile] = useState<any>(null)
-  const [role, setRole] = useState<string>("")
-  const [loadingRole, setLoadingRole] = useState(true)
-
-  const [openSertifikat, setOpenSertifikat] = useState(false)
-  const [openUpload, setOpenUpload] = useState(false)
-
-  function isActive(path: string) {
-    return pathname === path
-  }
-
-  useEffect(() => {
-    getProfile()
-  }, [])
-
-  async function getProfile() {
-
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      setLoadingRole(false)
-      return
-    }
-
-    const { data, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("email", user.email)
-      .single()
-
-    if (error) {
-      console.error("Gagal ambil profile:", error)
-      setLoadingRole(false)
-      return
-    }
-
-    if (data) {
-      setProfile(data)
-      setRole((data.role || "").toLowerCase())
-    }
-
-    setLoadingRole(false)
-  }
-
-  async function logout() {
-    await supabase.auth.signOut()
-    router.push("/login")
-  }
-
-  if (loadingRole) {
-    return null
-  }
-
+function SidebarContent({ pathname }: { pathname: string }) {
   return (
-    <>
+    <div className="flex h-full flex-col orbit-sidebar-bg px-4 py-4 text-white">
+      <div className="orbit-brand-card p-4">
+        <div className="flex items-center gap-3">
+          <Image
+            src="/brand/orbit-logo.png"
+            alt="ORBIT Logo"
+            width={56}
+            height={56}
+            priority
+            className="h-14 w-14 object-contain"
+          />
 
-      {/* MOBILE TOP BAR */}
+          <div className="min-w-0">
+            <p className="text-2xl font-bold tracking-tight text-white">ORBIT</p>
+            <p className="mt-1 text-xs leading-6 text-white/75">
+              Outstanding Recognition &amp; Benchmarking Tool
+            </p>
+          </div>
+        </div>
 
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-[#0b1635] border-b border-cyan-400/10 flex items-center px-4 z-50">
-
-        <button onClick={() => setMobileOpen(true)}>
-          <Menu className="text-cyan-400" />
-        </button>
-
-        <span className="ml-4 font-bold tracking-widest bg-linear-to-r from-cyan-400 via-white to-purple-400 bg-clip-text text-transparent">
-          ORBIT
-        </span>
-
+        <div className="orbit-institution-card mt-4 px-4 py-4">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/55">
+            Institusi
+          </p>
+          <p className="mt-2 text-lg font-semibold text-white">
+            BPS Provinsi Sulawesi Utara
+          </p>
+          <p className="mt-1 text-sm leading-6 text-white/75">
+            Panel administrasi pemilihan pegawai teladan.
+          </p>
+        </div>
       </div>
 
-      {/* OVERLAY */}
+      <nav className="mt-5 flex-1 space-y-5 overflow-y-auto pr-1">
+        {sections.map((section) => (
+          <div key={section.title}>
+            <p className="mb-3 px-3 text-xs font-bold uppercase tracking-[0.22em] text-white/45">
+              {section.title}
+            </p>
 
-      {mobileOpen && (
-        <div
-          onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-        />
-      )}
+            <div className="space-y-2">
+              {section.items.map((item) => {
+                const active = isActive(pathname, item.href)
+                const Icon = item.icon
 
-      {/* SIDEBAR */}
-
-      <div
-        className={`
-        fixed top-0 left-0 h-screen
-        bg-linear-to-b from-[#0f1c3f] to-[#132a5c]
-        border-r border-cyan-400/10
-        shadow-[0_0_40px_rgba(0,198,255,0.08)]
-        flex flex-col
-        overflow-y-auto
-        transition-all duration-300
-        z-50
-        ${collapsed ? "w-20" : "w-64"}
-        ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      `}
-      >
-
-        {/* CLOSE MOBILE */}
-
-        <div className="lg:hidden flex justify-end p-4">
-          <button onClick={() => setMobileOpen(false)}>
-            <X className="text-cyan-400" />
-          </button>
-        </div>
-
-        {/* LOGO */}
-
-        <div className="flex flex-col items-center py-8 border-b border-cyan-400/10">
-
-          <div className="relative w-25 h-25 mb-4">
-
-            <div className="absolute top-1/2 left-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-purple-500/20 border-l-purple-500 animate-[spin_7s_linear_infinite]" />
-
-            <div className="absolute top-1/2 left-1/2 w-18 h-18 -translate-x-1/2 -translate-y-1/2 rounded-full border border-orange-400/30 border-r-orange-400 animate-[spin_4.5s_linear_infinite_reverse]" />
-
-            <div className="absolute top-1/2 left-1/2 w-12.5 h-12.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/40 border-t-cyan-400 animate-[spin_2.5s_linear_infinite]" />
-
-            <div className="absolute top-1/2 left-1/2 w-7 h-7 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_35%_35%,#7ee8fa,#0e3b5c)] shadow-[0_0_15px_#00c6ffaa]" />
-
-          </div>
-
-          {!collapsed && (
-            <>
-              <h1 className="text-[28px] font-black tracking-[8px] bg-linear-to-r from-cyan-400 via-white to-purple-500 bg-clip-text text-transparent font-['Orbitron']">
-                ORBIT
-              </h1>
-
-              <div className="h-px w-30 bg-linear-to-r from-transparent via-cyan-400 to-transparent mt-2" />
-
-              <p className="text-[10px] tracking-widest text-blue-300/50 mt-3 text-center leading-relaxed">
-                Outstanding Recognition <br />
-                & Benchmarking Tool
-              </p>
-            </>
-          )}
-
-        </div>
-
-        {/* MENU */}
-
-        <nav className="flex-1 px-3 py-6 space-y-2 text-sm">
-
-          {role === "admin" && (
-            <>
-
-              {menuItem("/admin", "Dashboard", <LayoutDashboard size={18} />, collapsed, isActive)}
-              {menuItem("/admin/input-nilai", "Input Nilai Final", <FileText size={18} />, collapsed, isActive)}
-              {menuItem("/admin/pegawai", "Kelola Pegawai", <Users size={18} />, collapsed, isActive)}
-              {menuItem("/admin/laporan", "Generate Laporan", <FileText size={18} />, collapsed, isActive)}
-
-              {/* SERTIFIKAT DROPDOWN */}
-
-              <div>
-
-                <button
-                  onClick={() => setOpenSertifikat(!openSertifikat)}
-                  className="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <Award size={18} />
-                    {!collapsed && "Sertifikat"}
-                  </div>
-
-                  {!collapsed && <ChevronDown size={16} />}
-                </button>
-
-                {openSertifikat && !collapsed && (
-                  <div className="ml-8 mt-1 space-y-1">
-
-                    {menuItem("/admin/sertifikat/upload", "Upload Sertifikat", <Upload size={16} />, collapsed, isActive)}
-
-                    {menuItem("/admin/sertifikat/lihat", "Lihat Sertifikat", <FileText size={16} />, collapsed, isActive)}
-
-                  </div>
-                )}
-
-              </div>
-
-              {/* UPLOAD DROPDOWN */}
-
-              <div>
-
-                <button
-                  onClick={() => setOpenUpload(!openUpload)}
-                  className="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-300 transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <Upload size={18} />
-                    {!collapsed && "Upload"}
-                  </div>
-
-                  {!collapsed && <ChevronDown size={16} />}
-                </button>
-
-                {openUpload && !collapsed && (
-                  <div className="ml-8 mt-1 space-y-1">
-
-                    {menuItem(
-                      "/admin/upload/excel",
-                      "Upload Excel",
-                      <Upload size={16} />,
-                      collapsed,
-                      isActive
-                    )}
-
-                    {menuItem(
-                      "/admin/upload/kipapp",
-                      "Upload KipApp",
-                      <FileText size={16} />,
-                      collapsed,
-                      isActive
-                    )}
-
-                  </div>
-                )}
-
-              </div>
-
-              {menuItem("/admin/penilaian-juri", "Penilaian Juri", <Award size={18} />, collapsed, isActive)}
-              {menuItem("/admin/notifikasi", "Notifikasi", <Bell size={18} />, collapsed, isActive)}
-              {menuItem("/admin/approval", "Approval", <CheckCircle size={18} />, collapsed, isActive)}
-              {menuItem("/admin/history", "Arsip / History", <History size={18} />, collapsed, isActive)}
-
-            </>
-          )}
-
-          {role === "juri" && (
-            <>
-              {menuItem("/juri", "Dashboard", <LayoutDashboard size={18} />, collapsed, isActive)}
-              {menuItem("/juri/penilaian", "Penilaian", <Award size={18} />, collapsed, isActive)}
-              {menuItem("/juri/riwayat", "Riwayat", <History size={18} />, collapsed, isActive)}
-              {menuItem("/juri/profil", "Profil", <User size={18} />, collapsed, isActive)}
-            </>
-          )}
-
-          {role === "verifikator" && (
-            <>
-              {menuItem("/verifikator", "Dashboard", <LayoutDashboard size={18} />, collapsed, isActive)}
-              {menuItem("/verifikator/verifikasi", "Verifikasi Nilai", <CheckCircle size={18} />, collapsed, isActive)}
-              {menuItem("/verifikator/riwayat", "Riwayat", <History size={18} />, collapsed, isActive)}
-            </>
-          )}
-
-        </nav>
-
-        {/* PROFILE */}
-
-        <div className="px-3 py-4 border-t border-cyan-400/10">
-
-          <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-500/10 transition">
-
-            <div className="w-9 h-9 rounded-full bg-linear-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white shadow-[0_0_15px_rgba(0,198,255,0.4)]">
-              <User size={16} />
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={[
+                      "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition",
+                      active
+                        ? "bg-white text-orbit-cosmic shadow-md"
+                        : "text-white/85 hover:bg-white/10 hover:text-white",
+                    ].join(" ")}
+                  >
+                    <span
+                      className={[
+                        "flex h-11 w-11 items-center justify-center rounded-2xl transition",
+                        active
+                          ? "bg-orbit-cloud-soft text-orbit-cosmic"
+                          : "bg-white/10 text-white/80 group-hover:bg-white/15",
+                      ].join(" ")}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                )
+              })}
             </div>
-
-            {!collapsed && (
-              <>
-                <div className="flex-1 min-w-0">
-
-                  <p className="text-sm font-semibold text-blue-200 truncate">
-                    {profile?.nama || "User"}
-                  </p>
-
-                  <p className="text-[10px] tracking-wider text-blue-400/60 uppercase">
-                    {profile?.role || "user"}
-                  </p>
-
-                </div>
-
-                <LogOut
-                  size={16}
-                  onClick={logout}
-                  className="text-blue-400/50 hover:text-red-400 transition cursor-pointer"
-                />
-              </>
-            )}
-
           </div>
+        ))}
+      </nav>
 
-        </div>
-
+      <div className="orbit-note-card mt-4 px-3.5 py-3">
+        <p className="text-sm font-bold text-orbit-gold">Catatan Profesional</p>
+        <p className="mt-1.5 text-xs leading-6 text-white/80">
+          Gunakan ORBIT untuk menjaga proses input nilai, nominasi, penilaian juri,
+          verifikasi, dan dokumentasi penghargaan tetap konsisten dan terdokumentasi.
+        </p>
       </div>
-
-    </>
+    </div>
   )
 }
 
-function menuItem(
-  path: string,
-  label: string,
-  icon: React.ReactNode,
-  collapsed: boolean,
-  isActive: (path: string) => boolean
-) {
+export default function Sidebar() {
+  const pathname = usePathname()
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    setOpen(false)
+  }, [pathname])
 
   return (
-    <Link
-      href={path}
-      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-        isActive(path)
-          ? "bg-cyan-500/15 text-cyan-300 border border-cyan-400/20"
-          : "hover:bg-cyan-500/10 hover:text-cyan-300"
-      }`}
-    >
-      {icon}
-      {!collapsed && label}
-    </Link>
-  )
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="fixed left-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-2xl border border-orbit bg-white text-orbit-cosmic shadow-md lg:hidden"
+        aria-label="Buka menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
 
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-80 lg:block">
+        <SidebarContent pathname={pathname} />
+      </aside>
+
+      <div
+        className={[
+          "fixed inset-0 z-50 bg-black/40 transition lg:hidden",
+          open ? "visible opacity-100" : "invisible opacity-0",
+        ].join(" ")}
+      >
+        <div
+          className={[
+            "absolute inset-y-0 left-0 w-80 transition-transform duration-300",
+            open ? "translate-x-0" : "-translate-x-full",
+          ].join(" ")}
+        >
+          <SidebarContent pathname={pathname} />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-orbit-cosmic shadow-md"
+          aria-label="Tutup menu"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+    </>
+  )
 }

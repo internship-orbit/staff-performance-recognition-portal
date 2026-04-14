@@ -1,569 +1,432 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import {
+  BellRing,
+  CalendarRange,
+  CheckCircle2,
+  ClipboardCheck,
+  Medal,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
+  Users,
+} from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
-import Header from "./components/header"
 import QuickActions from "./components/quickactions"
+import RankingTable from "./components/RankingTable"
 import StatsCard from "./components/statscard"
+import {
+  EmptyState,
+  LoadingState,
+  PageHeader,
+  SectionCard,
+  StatusBadge,
+} from "./components/ui"
 
-import { Users, FileCheck, AlertCircle, Activity } from "lucide-react"
-
-export default function AdminPage(){
-
-const [nominasi,setNominasi] = useState<any[]>([])
-const [finalNominee,setFinalNominee] = useState<any[]>([])
-const [ranking,setRanking] = useState<any[]>([])
-
-const [pegawaiCount,setPegawaiCount] = useState(0)
-const [nilaiCount,setNilaiCount] = useState(0)
-
-useEffect(()=>{
-loadNominasi()
-loadRanking()
-loadStats()
-},[])
-
-
-/* =========================
-LOAD STATS CARD
-========================= */
-
-async function loadStats(){
-
-const {data:pegawai} = await supabase
-.from("pegawai")
-.select("id")
-
-const {data:nilai} = await supabase
-.from("nilai_final")
-.select("id")
-
-setPegawaiCount(pegawai?.length || 0)
-setNilaiCount(nilai?.length || 0)
-
+type RankingRow = {
+  id: string
+  nama: string
+  nip?: string
+  unit: string
+  nilai: number
 }
 
-/* =========================
-LOAD NOMINASI
-========================= */
-
-async function loadNominasi(){
-
-const {data,error} = await supabase
-.from("nilai_final")
-.select(`
-id,
-nilai,
-total_nilai,
-periode_bulan,
-pegawai:pegawai_id(
-id,
-nama,
-tim
-)
-`)
-
-if(error){
-console.log(error)
-return
+type HistoryRow = {
+  id: string
+  nama: string
+  tim: string
+  total_nilai: number
+  triwulan: number
+  tahun: number
+  periode_label?: string
 }
 
-if(!data){
-setNominasi([])
-return
+type NotificationRow = {
+  id: string
+  judul: string
+  pesan: string
+  tipe?: string
+  deadline?: string
+  role_target?: string
 }
 
-/* AUTO NOMINASI TOP 1 TIM BULAN */
-
-const map:any = {}
-
-data.forEach((item:any)=>{
-
-const tim = item.pegawai?.tim || "Tanpa Tim"
-
-const bulan = new Date(item.periode_bulan)
-.toLocaleDateString("id-ID",{month:"long"})
-
-const key = `${tim}-${bulan}`
-
-if(!map[key]){
-map[key] = item
-}else{
-if(item.total_nilai > map[key].total_nilai){
-map[key] = item
-}
+type OpenPeriod = {
+  bulan: number
+  tahun: number
+  status: string
 }
 
-})
+export default function AdminDashboardPage() {
+  const [loading, setLoading] = useState(true)
 
-setNominasi(Object.values(map))
+  const [pegawaiCount, setPegawaiCount] = useState(0)
+  const [nilaiAdminCount, setNilaiAdminCount] = useState(0)
+  const [nominasiCount, setNominasiCount] = useState(0)
+  const [penilaianJuriCount, setPenilaianJuriCount] = useState(0)
+  const [verifikasiPendingCount, setVerifikasiPendingCount] = useState(0)
+  const [historyCount, setHistoryCount] = useState(0)
 
-}
+  const [openPeriod, setOpenPeriod] = useState<OpenPeriod | null>(null)
+  const [rankingRows, setRankingRows] = useState<RankingRow[]>([])
+  const [historyRows, setHistoryRows] = useState<HistoryRow[]>([])
+  const [notifications, setNotifications] = useState<NotificationRow[]>([])
 
-/* =========================
-LOAD FINAL RANKING
-========================= */
+  useEffect(() => {
+    async function loadDashboard() {
+      setLoading(true)
 
-async function loadRanking(){
+      try {
+        const [
+          pegawaiRes,
+          nilaiAdminRes,
+          nominasiRes,
+          penilaianRes,
+          verifikasiRes,
+          historyRes,
+          periodeRes,
+          rankingRes,
+          recentHistoryRes,
+          notifRes,
+        ] = await Promise.all([
+          supabase.from("pegawai").select("*", { count: "exact", head: true }),
+          supabase.from("penilaian_admin").select("*", { count: "exact", head: true }),
+          supabase.from("nominasi_final").select("*", { count: "exact", head: true }),
+          supabase.from("penilaian").select("*", { count: "exact", head: true }),
+          supabase
+            .from("verifikasi")
+            .select("*", { count: "exact", head: true })
+            .eq("status", "pending"),
+          supabase
+            .from("history_penghargaan")
+            .select("*", { count: "exact", head: true }),
+          supabase
+            .from("periode")
+            .select("bulan, tahun, status")
+            .eq("status", "open")
+            .order("tahun", { ascending: false })
+            .order("bulan", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          supabase.rpc("get_ranking_live"),
+          supabase
+            .from("history_penghargaan")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .limit(5),
+          supabase
+            .from("notifikasi")
+            .select("id, judul, pesan, tipe, deadline, role_target")
+            .order("created_at", { ascending: false })
+            .limit(4),
+        ])
 
-const {data,error} = await supabase
-.from("penilaian")
-.select(`
-pegawai_id,
-total_nilai,
-pegawai:pegawai_id(
-id,
-nama,
-tim
-)
-`)
+        setPegawaiCount(pegawaiRes.count || 0)
+        setNilaiAdminCount(nilaiAdminRes.count || 0)
+        setNominasiCount(nominasiRes.count || 0)
+        setPenilaianJuriCount(penilaianRes.count || 0)
+        setVerifikasiPendingCount(verifikasiRes.count || 0)
+        setHistoryCount(historyRes.count || 0)
 
-if(error){
-console.log(error)
-return
-}
+        setOpenPeriod((periodeRes.data as OpenPeriod | null) || null)
 
-if(!data){
-setRanking([])
-return
-}
+        const normalizedRanking: RankingRow[] = (
+          (rankingRes.data as
+            | Array<{
+                pegawai_id: string
+                nama: string
+                tim: string
+                nilai: number
+              }>
+            | null) || []
+        ).map((item) => ({
+          id: item.pegawai_id,
+          nama: item.nama,
+          unit: item.tim || "-",
+          nilai: Number(item.nilai || 0),
+        }))
 
-const map:any = {}
+        setRankingRows(normalizedRanking)
+        setHistoryRows(((recentHistoryRes.data as HistoryRow[] | null) || []))
+        setNotifications(((notifRes.data as NotificationRow[] | null) || []))
+      } catch (error) {
+        console.error("Gagal memuat dashboard admin:", error)
+        setRankingRows([])
+        setHistoryRows([])
+        setNotifications([])
+        setOpenPeriod(null)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-data.forEach((item:any)=>{
+    loadDashboard()
+  }, [])
 
-const id = item.pegawai?.id
-
-if(!map[id]){
-map[id] = {
-pegawai_id:item.pegawai?.id,
-nama:item.pegawai?.nama,
-tim:item.pegawai?.tim,
-total:0,
-count:0
-}
-}
-
-map[id].total += item.total_nilai
-map[id].count += 1
-
-})
-
-const result = Object.values(map).map((item:any)=>({
-pegawai_id:item.pegawai_id,
-nama:item.nama,
-tim:item.tim,
-nilai:item.total/item.count
-}))
-
-result.sort((a:any,b:any)=>b.nilai-a.nilai)
-
-setRanking(result)
-
-}
-
-/* =========================
-PILIH NOMINASI FINAL
-========================= */
-
-function pilihFinal(item:any){
-
-const tim = item.pegawai?.tim
-
-const sudahAda = finalNominee.find(
-(n:any)=> n.pegawai?.tim === tim
-)
-
-if(sudahAda){
-alert("Setiap tim hanya boleh 1 nominasi final")
-return
-}
-
-setFinalNominee([...finalNominee,item])
-
-}
-
-function tolakFinal(id:any){
-
-setFinalNominee(
-finalNominee.filter((n:any)=> n.id !== id)
-)
-
-}
-
-/* =========================
-KIRIM KE JURI
-========================= */
-
-async function kirimKeJuri(){
-
-if(finalNominee.length === 0){
-alert("Belum ada nominasi final")
-return
-}
-
-await supabase
-.from("nominasi_juri")
-.delete()
-.neq("id","00000000-0000-0000-0000-000000000000")
-
-const dataInsert = finalNominee.map((item:any)=>({
-
-pegawai_id:item.pegawai.id,
-tim:item.pegawai.tim,
-total_nilai:item.total_nilai
-
-}))
-
-const {error} = await supabase
-.from("nominasi_juri")
-.insert(dataInsert)
-
-if(error){
-console.log(error)
-alert("Gagal mengirim ke juri")
-return
-}
-
-alert("Berhasil dikirim ke juri")
-
-setFinalNominee([])
-
-}
-
-/* =========================
-KIRIM KE APPROVAL
-========================= */
-
-async function kirimKeApproval(){
-
-if(ranking.length === 0){
-alert("Belum ada ranking juri")
-return
-}
-
-await supabase
-.from("nominasi_final")
-.delete()
-.neq("id","00000000-0000-0000-0000-000000000000")
-
-const dataInsert = ranking.map((item:any)=>({
-
-pegawai_id:item.pegawai_id,
-tim:item.tim,
-total_nilai:item.nilai,
-
-}))
-
-const {error} = await supabase
-.from("nominasi_final")
-.insert(dataInsert)
-
-if(error){
-console.log(error)
-alert("Gagal mengirim ke approval")
-return
-}
-
-alert("Ranking berhasil dikirim ke verifikator")
-
-}
-
-/* =========================
-RESET
-========================= */
-
-async function handleResetPenilaian(){
-
-  const confirmReset = confirm(
-    "Yakin ingin memulai penilaian baru?\nSemua data proses penilaian akan dihapus."
+  const flowStatus = useMemo(
+    () => [
+      {
+        title: "Input Nilai Admin",
+        description:
+          "Admin mengisi nilai final admin dan jumlah data pendukung pada periode berjalan.",
+        value: nilaiAdminCount,
+        tone: nilaiAdminCount > 0 ? "success" : "warning",
+        label: nilaiAdminCount > 0 ? "Sudah berjalan" : "Belum ada input",
+      },
+      {
+        title: "Nominasi Final",
+        description:
+          "Pegawai dengan hasil terbaik masuk ke nominasi_final untuk lanjut ke tahap juri.",
+        value: nominasiCount,
+        tone: nominasiCount > 0 ? "success" : "warning",
+        label: nominasiCount > 0 ? "Siap dinilai juri" : "Belum terbentuk",
+      },
+      {
+        title: "Penilaian Juri",
+        description:
+          "Juri memberikan penilaian pada kandidat yang sudah masuk nominasi final.",
+        value: penilaianJuriCount,
+        tone: penilaianJuriCount > 0 ? "info" : "warning",
+        label: penilaianJuriCount > 0 ? "Sedang berjalan" : "Menunggu input juri",
+      },
+      {
+        title: "Verifikasi Akhir",
+        description:
+          "Verifikator menetapkan status kandidat, lalu hasil akhir masuk ke riwayat penghargaan.",
+        value: verifikasiPendingCount,
+        tone: verifikasiPendingCount > 0 ? "warning" : "success",
+        label: verifikasiPendingCount > 0 ? "Ada yang menunggu" : "Sudah tertangani",
+      },
+    ],
+    [nilaiAdminCount, nominasiCount, penilaianJuriCount, verifikasiPendingCount]
   )
 
-  if(!confirmReset) return
-
-  const { error } = await supabase
-    .rpc("reset_penilaian_baru")
-
-  if(error){
-    console.error(error)
-    alert("Gagal reset penilaian")
-    return
+  function formatPeriodLabel(period: OpenPeriod | null) {
+    if (!period) return "Belum ada periode aktif"
+    return `Bulan ${period.bulan} / ${period.tahun}`
   }
 
-  alert("Penilaian baru siap dimulai")
-
-  window.location.reload()
-
-}
-
-
-/* =========================
-GROUPING TIM
-========================= */
-
-const groupedByTeam = nominasi.reduce((acc:any,item:any)=>{
-
-const tim = item.pegawai?.tim || "Tanpa Tim"
-
-if(!acc[tim]) acc[tim] = []
-
-acc[tim].push(item)
-
-return acc
-
-},{})
-
-return(
-
-<div className="min-h-screen bg-[#0b1635] text-blue-100 space-y-8">
-
-<Header
-title="Admin Board"
-subtitle="Manage. Evaluate. Recognize."
-/>
-
-{/* =========================
-STATS CARD
-========================= */}
-
-<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-
-<StatsCard
-title="Total Pegawai"
-value={pegawaiCount}
-subtitle="Data terdaftar"
-icon={<Users size={22}/>}
-/>
-
-<StatsCard
-title="Data Sudah Dinilai"
-value={nilaiCount}
-subtitle="Sudah diinput"
-icon={<FileCheck size={22}/>}
-/>
-
-<StatsCard
-title="Data Belum Dinilai"
-value={pegawaiCount - nilaiCount}
-subtitle="Perlu input"
-icon={<AlertCircle size={22}/>}
-/>
-
-<StatsCard
-title="Monitoring Penilaian TPK"
-value="IN PROGRESS"
-subtitle="Status Evaluasi"
-icon={<Activity size={22}/>}
-/>
-
-</div>
-
-<QuickActions/>
-
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-{/* =========================
-NOMINASI PER TIM
-========================= */}
-
-<div className="bg-[#1a2f6d]/80 rounded-2xl p-8">
-
-<h2 className="text-xl font-bold text-cyan-300 mb-6">
-Nominasi Per Tim
-</h2>
-
-<div className="space-y-8">
-
-{Object.entries(groupedByTeam).map(([tim,data]:any)=>(
-
-<div key={tim}>
-
-<h3 className="text-cyan-300 font-bold text-lg">
-TIM {tim.toUpperCase()}
-</h3>
-
-<div className="space-y-4 mt-4">
-
-{data.map((item:any)=>{
-
-const bulan = new Date(item.periode_bulan)
-.toLocaleDateString("id-ID",{month:"long"})
-
-const sudahDipilih = finalNominee.find(
-(n:any)=> n.pegawai?.tim === tim
-)
-
-return(
-
-<div
-key={item.id}
-className="flex justify-between bg-[#0f1c3f] p-4 rounded-xl"
->
-
-<div>
-
-<p className="font-semibold text-white">
-{item.pegawai?.nama}
-</p>
-
-<p className="text-xs text-blue-300">
-{bulan} • Nilai {item.total_nilai}
-</p>
-
-</div>
-
-<div className="flex gap-2">
-
-<button
-onClick={()=>pilihFinal(item)}
-disabled={!!sudahDipilih}
-className="px-3 py-1 text-xs bg-green-500 rounded-md disabled:opacity-40"
->
-OKE
-</button>
-
-<button
-onClick={()=>tolakFinal(item.id)}
-className="px-3 py-1 text-xs bg-red-500 rounded-md"
->
-TIDAK
-</button>
-
-</div>
-
-</div>
-
-)
-
-})}
-
-</div>
-
-</div>
-
-))}
-
-</div>
-
-</div>
-
-{/* =========================
-NOMINASI FINAL
-========================= */}
-
-<div className="bg-[#1a2f6d]/80 rounded-2xl p-8">
-
-<h2 className="text-xl font-bold text-cyan-300 mb-6">
-Nominasi Final
-</h2>
-
-{finalNominee.length === 0 && (
-<p className="text-blue-300/60">
-Data untuk disubmit ke Juri
-</p>
-)}
-
-<div className="space-y-3">
-
-{finalNominee.map((item:any)=>(
-
-<div
-key={item.id}
-className="bg-[#0f1c3f] p-4 rounded-lg"
->
-{item.pegawai?.nama}
-</div>
-
-))}
-
-</div>
-
-<button
-onClick={kirimKeJuri}
-className="mt-6 px-4 py-2 bg-green-500 hover:bg-green-600 rounded-md font-semibold"
->
-Kirim ke Juri
-</button>
-
-</div>
-
-</div>
-
-{/* =========================
-FINAL RANKING
-========================= */}
-
-<div className="bg-[#1a2f6d]/80 rounded-2xl p-8">
-
-<h2 className="text-xl font-bold text-cyan-300 mb-6">
-Final Ranking
-</h2>
-
-{ranking.length === 0 && (
-<p className="text-blue-300/60">
-Belum ada penilaian juri
-</p>
-)}
-
-<div className="space-y-3">
-
-{ranking.map((item:any,index:number)=>(
-
-<div
-key={index}
-className="flex justify-between bg-[#0f1c3f] p-4 rounded-lg"
->
-
-<span>
-{index+1}. {item.nama}
-</span>
-
-<span className="text-cyan-300 font-semibold">
-{item.nilai.toFixed(1)}
-</span>
-
-</div>
-
-))}
-
-</div>
-
-<button
-onClick={kirimKeApproval}
-className="mt-6 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-md font-semibold"
->
-Kirim ke Approval
-</button>
-
-</div>
-    {/* =========================
-    RESET PENILAIAN
-    ========================= */}
-
-    <div className="flex justify-end mt-10 px-8 pb-10">
-    <button
-        onClick={handleResetPenilaian}
-        className="
-        px-8 py-3
-        rounded-xl
-        bg-gradient-to-r
-        from-indigo-500
-        to-cyan-500
-        text-white
-        font-semibold
-        shadow-lg
-        hover:scale-105
-        transition
-        "
-    >
-        Buat Penilaian Baru
-    </button>
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Dashboard Admin ORBIT"
+        description="Panel pengelolaan utama untuk memantau kesiapan data, progres seleksi, penilaian juri, verifikasi, dan dokumentasi penghargaan tanpa mengubah flow database yang sudah dibangun."
+      />
+
+      {loading ? (
+        <LoadingState label="Memuat dashboard admin..." />
+      ) : (
+        <>
+          <div className="orbit-stat-grid">
+            <StatsCard
+              title="Total Pegawai"
+              value={pegawaiCount}
+              subtitle="Jumlah pegawai yang tercatat pada basis kandidat."
+              icon={Users}
+            />
+            <StatsCard
+              title="Input Nilai Admin"
+              value={nilaiAdminCount}
+              subtitle="Data dari tabel penilaian_admin pada periode berjalan."
+              icon={ClipboardCheck}
+            />
+            <StatsCard
+              title="Nominasi Final"
+              value={nominasiCount}
+              subtitle="Kandidat yang sudah masuk ke tahap penilaian juri."
+              icon={Trophy}
+            />
+            <StatsCard
+              title="Penilaian Juri"
+              value={penilaianJuriCount}
+              subtitle="Total penilaian yang sudah masuk dari panel juri."
+              icon={ShieldCheck}
+            />
+            <StatsCard
+              title="Verifikasi Pending"
+              value={verifikasiPendingCount}
+              subtitle="Data pada tabel verifikasi dengan status pending."
+              icon={CheckCircle2}
+            />
+            <StatsCard
+              title="Riwayat Penghargaan"
+              value={historyCount}
+              subtitle="Dokumen hasil yang sudah masuk ke history_penghargaan."
+              icon={Medal}
+            />
+          </div>
+
+          <SectionCard
+            title="Aksi Cepat"
+            description="Akses langsung ke halaman operasional yang paling sering dipakai admin."
+          >
+            <QuickActions />
+          </SectionCard>
+
+          <div className="grid gap-6 xl:grid-cols-3">
+            <div className="xl:col-span-2">
+              <SectionCard
+                title="Top Ranking Pegawai"
+                description="Ringkasan ranking live berdasarkan function database get_ranking_live()."
+              >
+                <RankingTable rows={rankingRows} />
+              </SectionCard>
+            </div>
+
+            <div className="xl:col-span-1">
+              <SectionCard
+                title="Periode Aktif & Status Proses"
+                description="Ringkasan tahapan yang tetap mengikuti alur kerja lama project."
+              >
+                <div className="space-y-4">
+                  <div
+                    className="rounded-3xl p-5 text-white"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, var(--orbit-cosmic) 0%, var(--orbit-plum) 100%)",
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/65">
+                          Periode Aktif
+                        </p>
+                        <p className="mt-2 text-2xl font-bold">{formatPeriodLabel(openPeriod)}</p>
+                        <p className="mt-2 text-sm leading-7 text-white/78">
+                          Status: {openPeriod?.status || "Belum tersedia"}
+                        </p>
+                      </div>
+
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
+                        <CalendarRange className="h-5 w-5 text-orbit-gold" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {flowStatus.map((item) => (
+                    <div key={item.title} className="rounded-3xl border border-orbit bg-white p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-orbit-text">{item.title}</p>
+                          <p className="mt-2 text-sm leading-7 text-orbit-muted">
+                            {item.description}
+                          </p>
+                        </div>
+
+                        <StatusBadge
+                          tone={item.tone as "success" | "warning" | "danger" | "info"}
+                        >
+                          {item.label}
+                        </StatusBadge>
+                      </div>
+
+                      <div className="mt-3 text-sm font-semibold text-orbit-cosmic">
+                        Total data: {item.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            </div>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-2">
+            <SectionCard
+              title="Riwayat Penetapan Terakhir"
+              description="Data terbaru dari tabel history_penghargaan."
+            >
+              {historyRows.length === 0 ? (
+                <EmptyState
+                  title="Belum ada riwayat penghargaan"
+                  description="Riwayat akan tampil setelah proses verifikasi dan penetapan selesai dilakukan."
+                />
+              ) : (
+                <div className="space-y-3">
+                  {historyRows.map((item) => (
+                    <div key={item.id} className="rounded-3xl border border-orbit bg-white p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="font-bold text-orbit-text">{item.nama}</p>
+                          <p className="mt-1 text-sm text-orbit-muted">
+                            {item.tim} • {item.periode_label || `Triwulan ${item.triwulan}`}
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="font-bold text-orbit-cosmic">
+                            {Number(item.total_nilai || 0).toFixed(2)}
+                          </p>
+                          <p className="text-sm text-orbit-muted">{item.tahun}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+
+            <SectionCard
+              title="Notifikasi & Insight Admin"
+              description="Tetap terintegrasi dengan tabel notifikasi."
+            >
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="rounded-3xl border border-orbit bg-orbit-gold-soft p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/70">
+                      <Sparkles className="h-5 w-5 text-orbit-gold" />
+                    </div>
+
+                    <div>
+                      <p className="text-base font-bold text-orbit-text">Insight ORBIT</p>
+                      <p className="mt-2 text-sm leading-7 text-orbit-muted">
+                        Flow tetap sama:
+                        input nilai admin → nominasi final → penilaian juri →
+                        verifikasi → riwayat penghargaan / sertifikat.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {notifications.length === 0 ? (
+                    <EmptyState
+                      title="Belum ada notifikasi"
+                      description="Data dari tabel notifikasi akan muncul di sini untuk membantu admin memantau deadline dan pengumuman."
+                    />
+                  ) : (
+                    notifications.map((item) => (
+                      <div key={item.id} className="rounded-3xl border border-orbit bg-white p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-orbit-cloud-soft">
+                            <BellRing className="h-4 w-4 text-orbit-sky" />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="font-bold text-orbit-text">{item.judul}</p>
+                              <StatusBadge tone="info">{item.tipe || "info"}</StatusBadge>
+                            </div>
+
+                            <p className="mt-2 text-sm leading-7 text-orbit-muted">
+                              {item.pesan}
+                            </p>
+
+                            <div className="mt-3 text-xs font-medium text-orbit-sky">
+                              {item.deadline
+                                ? `Deadline: ${item.deadline}`
+                                : `Target: ${item.role_target || "semua role"}`}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+        </>
+      )}
     </div>
-
-</div>
-
-)
-
+  )
 }
-
-

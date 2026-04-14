@@ -1,93 +1,60 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabaseClient"
-
-type Ranking = {
-  id: number
+type RankingRow = {
+  id: string | number
   nama: string
-  jabatan: string
-  unit_kerja: string
-  rata_nilai: number
+  nip?: string
+  unit: string
+  nilai: number
 }
 
-export default function RankingTable() {
+type RankingTableProps = {
+  rows: RankingRow[]
+}
 
-  const [data, setData] = useState<Ranking[]>([])
+function getMedal(index: number) {
+  if (index === 0) return "🥇"
+  if (index === 1) return "🥈"
+  if (index === 2) return "🥉"
+  return `#${index + 1}`
+}
 
-  useEffect(() => {
-    fetchRanking()
-  }, [])
-
-  async function fetchRanking() {
-
-    const { data, error } = await supabase
-      .rpc("get_ranking_pegawai")
-
-    if (!error && data) {
-      setData(data)
-    }
-
-  }
-
+export default function RankingTable({ rows }: RankingTableProps) {
   return (
-
-    <div className="bg-gray-900 p-6 rounded-xl">
-
-      <table className="w-full">
-
-        <thead className="bg-gray-800">
-          <tr>
-            <th className="p-3">Ranking</th>
-            <th className="p-3 text-left">Nama</th>
-            <th className="p-3 text-left">Jabatan</th>
-            <th className="p-3 text-left">Unit</th>
-            <th className="p-3">Nilai</th>
-          </tr>
-        </thead>
-
-        <tbody>
-
-          {data.map((p, index) => (
-
-            <tr
-              key={p.id}
-              className="border-b border-gray-800"
-            >
-
-              <td className="p-3 text-center font-bold">
-
-                {index + 1}
-
-              </td>
-
-              <td className="p-3">
-                {p.nama}
-              </td>
-
-              <td className="p-3">
-                {p.jabatan}
-              </td>
-
-              <td className="p-3">
-                {p.unit_kerja}
-              </td>
-
-              <td className="p-3 text-center font-semibold">
-
-                {Number(p.rata_nilai).toFixed(2)}
-
-              </td>
-
+    <div className="overflow-hidden rounded-3xl border border-orbit">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead className="bg-orbit-cloud-soft">
+            <tr>
+              <th className="px-4 py-4 text-left font-bold text-orbit-text">Peringkat</th>
+              <th className="px-4 py-4 text-left font-bold text-orbit-text">Nama Pegawai</th>
+              <th className="px-4 py-4 text-left font-bold text-orbit-text">NIP</th>
+              <th className="px-4 py-4 text-left font-bold text-orbit-text">Tim / Unit</th>
+              <th className="px-4 py-4 text-right font-bold text-orbit-text">Nilai Akhir</th>
             </tr>
+          </thead>
 
-          ))}
-
-        </tbody>
-
-      </table>
-
+          <tbody className="divide-y divide-orbit bg-white">
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-16 text-center text-base text-orbit-muted">
+                  Belum ada data ranking yang dapat ditampilkan.
+                </td>
+              </tr>
+            ) : (
+              rows.map((row, index) => (
+                <tr key={row.id} className="transition hover:bg-orbit-cloud-soft">
+                  <td className="px-4 py-4 font-bold text-orbit-cosmic">{getMedal(index)}</td>
+                  <td className="px-4 py-4 font-semibold text-orbit-text">{row.nama}</td>
+                  <td className="px-4 py-4 text-orbit-muted">{row.nip || "-"}</td>
+                  <td className="px-4 py-4 text-orbit-muted">{row.unit}</td>
+                  <td className="px-4 py-4 text-right font-bold text-orbit-text">
+                    {row.nilai.toFixed(2)}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
-
   )
 }

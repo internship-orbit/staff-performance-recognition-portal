@@ -1,18 +1,17 @@
+import type { ReactNode } from "react"
+import Header from "./components/header"
 import Sidebar from "./components/sidebar"
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen" style={{ background: "var(--bg-base)" }}>
+    <div className="orbit-shell">
       <Sidebar />
-      <main className="flex-1 transition-all duration-300 ml-0 lg:ml-64">
-        <div className="w-full max-w-350 mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          {children}
-        </div>
-      </main>
+      <div className="lg:pl-80">
+        <Header />
+        <main className="px-4 pb-10 pt-24 md:px-6 lg:px-8">
+          <div className="mx-auto max-w-screen-2xl space-y-6">{children}</div>
+        </main>
+      </div>
     </div>
   )
 }

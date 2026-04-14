@@ -1,10 +1,11 @@
-interface Props {
+import type { LucideIcon } from "lucide-react"
+import { StatIcon } from "./ui"
+
+type StatsCardProps = {
   title: string
-  value: React.ReactNode
-  subtitle?: string
-  icon?: React.ReactNode
-  color?: string
-  valueColor?: string
+  value: string | number
+  subtitle: string
+  icon: LucideIcon
 }
 
 export default function StatsCard({
@@ -12,52 +13,19 @@ export default function StatsCard({
   value,
   subtitle,
   icon,
-  color = "text-cyan-300",
-  valueColor
-}: Props) {
+}: StatsCardProps) {
   return (
-    <div className="
-      bg-[#1a2f6d]/85
-      backdrop-blur-xl
-      border border-cyan-300/20
-      rounded-xl
-      shadow-lg
-      p-6
-      transition
-      flex justify-between items-center
-    ">
-      
-      <div>
-        {/* TITLE */}
-        <p className="text-blue-100/90 text-sm tracking-wide font-medium">
-          {title}
-        </p>
-
-        {/* VALUE */}
-        <h2 className={`text-3xl font-bold mt-2 ${valueColor ?? color}`}>
-          {value}
-        </h2>
-
-        {/* SUBTITLE */}
-        {subtitle && (
-          <p className="text-sm text-blue-200/80 mt-1">
-            {subtitle}
+    <div className="orbit-panel-soft p-5 md:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-orbit-muted">{title}</p>
+          <p className="mt-3 truncate text-4xl font-bold tracking-tight text-orbit-text">
+            {value}
           </p>
-        )}
-      </div>
-
-      {/* ICON */}
-      {icon && (
-        <div className="
-          bg-[#243b74]
-          border border-cyan-300/15
-          p-3
-          rounded-lg
-        ">
-          {icon}
+          <p className="mt-3 text-sm leading-7 text-orbit-muted">{subtitle}</p>
         </div>
-      )}
-
+        <StatIcon icon={icon} />
+      </div>
     </div>
   )
 }

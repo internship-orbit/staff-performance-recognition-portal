@@ -1,102 +1,79 @@
-"use client"
+import {
+  ArrowRight,
+  ClipboardPenLine,
+  FileSpreadsheet,
+  ShieldCheck,
+  Trophy,
+  Users,
+} from "lucide-react"
+import Link from "next/link"
 
-import { PlusCircle, Upload, Users, FileText } from "lucide-react"
-import { useRouter } from "next/navigation"
+const actions = [
+  {
+    title: "Kelola Data Pegawai",
+    description: "Perbarui kandidat, unit kerja, dan informasi dasar pegawai.",
+    href: "/admin/pegawai",
+    icon: Users,
+  },
+  {
+    title: "Input Nilai Admin",
+    description: "Masukkan nilai final admin dan jumlah data pendukung sesuai periode.",
+    href: "/admin/input-nilai",
+    icon: ClipboardPenLine,
+  },
+  {
+    title: "Lihat Ranking",
+    description: "Tinjau ranking hasil input admin sebelum masuk nominasi final.",
+    href: "/admin/ranking",
+    icon: Trophy,
+  },
+  {
+    title: "Monitoring Juri",
+    description: "Pantau progres penilaian juri tanpa mengubah flow database yang ada.",
+    href: "/admin/penilaian-juri",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Upload Excel",
+    description: "Unggah file pendukung penilaian dan dokumentasi proses seleksi.",
+    href: "/admin/upload/excel",
+    icon: FileSpreadsheet,
+  },
+]
 
 export default function QuickActions() {
-  const router = useRouter()
-
   return (
-    <div className="
-      bg-[#1f3270]/90
-      border border-cyan-300/15
-      rounded-2xl
-      p-6
-      shadow-lg
-    ">
-      <h3 className="text-lg font-semibold text-blue-100 mb-6">
-        Quick Actions
-      </h3>
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {actions.map((action) => {
+        const Icon = action.icon
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        return (
+          <Link
+            key={action.href}
+            href={action.href}
+            className="orbit-panel-soft group p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div
+                className="flex h-12 w-12 items-center justify-center rounded-2xl text-white"
+                style={{
+                  background:
+                    "linear-gradient(135deg, var(--orbit-cosmic) 0%, var(--orbit-plum) 100%)",
+                }}
+              >
+                <Icon className="h-5 w-5" />
+              </div>
 
-        {/* INPUT NILAI FINAL */}
-        <button
-          onClick={() => router.push("/admin/input-nilai")}
-          className="
-            flex items-center gap-3
-            h-14 px-5
-            rounded-xl
-            border border-cyan-400/40
-            text-cyan-200
-            bg-cyan-400/5
-            hover:bg-cyan-400/10
-            hover:border-cyan-300
-            transition-all duration-300
-          "
-        >
-          <PlusCircle size={20} />
-          Input Nilai Final
-        </button>
+              <ArrowRight className="h-4 w-4 text-orbit-muted transition group-hover:translate-x-1" />
+            </div>
 
-        {/* UPLOAD EXCEL */}
-        <button
-          onClick={() => router.push("/admin/upload")}
-          className="
-            flex items-center gap-3
-            h-14 px-5
-            rounded-xl
-            border border-red-400/40
-            text-red-300
-            bg-red-400/5
-            hover:bg-red-400/10
-            hover:border-red-300
-            transition-all duration-300
-          "
-        >
-          <Upload size={20} />
-          Upload Excel
-        </button>
-
-        {/* KELOLA PEGAWAI */}
-        <button
-          onClick={() => router.push("/admin/pegawai")}
-          className="
-            flex items-center gap-3
-            h-14 px-5
-            rounded-xl
-            border border-blue-300/40
-            text-blue-200
-            bg-blue-400/5
-            hover:bg-blue-400/10
-            hover:border-blue-300
-            transition-all duration-300
-          "
-        >
-          <Users size={20} />
-          Kelola Pegawai
-        </button>
-
-        {/* GENERATE LAPORAN */}
-        <button
-          onClick={() => router.push("/admin/laporan")}
-          className="
-            flex items-center gap-3
-            h-14 px-5
-            rounded-xl
-            border border-emerald-400/40
-            text-emerald-300
-            bg-emerald-400/5
-            hover:bg-emerald-400/10
-            hover:border-emerald-300
-            transition-all duration-300
-          "
-        >
-          <FileText size={20} />
-          Generate Laporan
-        </button>
-
-      </div>
+            <h3 className="mt-5 text-base font-bold text-orbit-text">{action.title}</h3>
+            <p className="mt-2 text-sm leading-7 text-orbit-muted">
+              {action.description}
+            </p>
+          </Link>
+        )
+      })}
     </div>
   )
 }

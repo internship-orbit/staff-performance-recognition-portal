@@ -1,199 +1,84 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import NotificationBell from "./notification/notification-bell"
-import ProfilePanel from "./profile/profile-panel"
+import { Bell, CalendarDays } from "lucide-react"
+import { usePathname } from "next/navigation"
 
-interface HeaderProps {
-  title: string
-  subtitle: string
+const pageTitleMap: Record<string, string> = {
+  "/admin": "Dashboard Admin",
+  "/admin/pegawai": "Data Pegawai",
+  "/admin/input-nilai": "Input Nilai Admin",
+  "/admin/ranking": "Ranking Pegawai",
+  "/admin/approval": "Monitoring Approval",
+  "/admin/penilaian-juri": "Penilaian Juri",
+  "/admin/upload/excel": "Upload Excel",
+  "/admin/sertifikat/upload": "Upload Sertifikat",
+  "/admin/sertifikat/lihat": "Lihat Sertifikat",
+  "/admin/history": "Riwayat Penghargaan",
+  "/admin/laporan": "Laporan",
+  "/admin/notifikasi": "Notifikasi",
 }
 
-export default function Header({ title, subtitle }: HeaderProps) {
+function getPageTitle(pathname: string) {
+  return pageTitleMap[pathname] || "Panel Admin ORBIT"
+}
 
-  const [time, setTime] = useState("")
-  const [date, setDate] = useState("")
+function formatToday() {
+  return new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date())
+}
 
-  useEffect(() => {
-
-    const updateTime = () => {
-
-      const now = new Date()
-
-      setTime(
-        now.toLocaleTimeString("id-ID", { hour12: false })
-      )
-
-      setDate(
-        now.toLocaleDateString("id-ID", {
-          weekday: "short",
-          day: "numeric",
-          month: "short",
-          year: "numeric"
-        })
-      )
-
-    }
-
-    updateTime()
-
-    const interval = setInterval(updateTime, 1000)
-
-    return () => clearInterval(interval)
-
-  }, [])
+export default function Header() {
+  const pathname = usePathname()
+  const title = getPageTitle(pathname)
 
   return (
+    <header className="fixed inset-x-0 top-0 z-30 border-b border-orbit bg-white/90 backdrop-blur lg:left-80">
+      <div className="mx-auto flex h-20 max-w-screen-2xl items-center justify-between gap-4 px-4 pl-16 md:px-6 md:pl-20 lg:px-8 lg:pl-8">
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-orbit-sky">
+            Outstanding Recognition &amp; Benchmarking Tool
+          </p>
+          <h1 className="truncate text-lg font-bold text-orbit-text md:text-xl">
+            {title}
+          </h1>
+        </div>
 
-<header
-className="
-relative
-flex flex-wrap items-center justify-between
-gap-y-4
-px-6 md:px-8 lg:px-10
-py-4 md:py-5
-bg-[#182758]
-border border-[#252564]
-rounded-xl
-overflow-visible
-"
->
+        <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-2 rounded-2xl border border-orbit bg-white px-4 py-2 text-sm text-orbit-text shadow-sm md:flex">
+            <CalendarDays className="h-4 w-4 text-orbit-sky" />
+            <span>{formatToday()}</span>
+          </div>
 
-{/* Neon Bottom Line */}
+          <button
+            type="button"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-orbit bg-white text-orbit-text shadow-sm transition hover:bg-orbit-cloud-soft"
+            aria-label="Notifikasi"
+          >
+            <Bell className="h-5 w-5" />
+          </button>
 
-<div className="
-absolute bottom-0 left-0 right-0 h-0.5
-bg-linear-to-r
-from-transparent
-via-cyan-400
-to-transparent
-shadow-[0_0_12px_rgba(0,198,255,0.5)]
-" />
+          <div className="flex items-center gap-3 rounded-2xl border border-orbit bg-white px-3 py-2 shadow-sm">
+            <div
+              className="flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-bold text-white"
+              style={{
+                background:
+                  "linear-gradient(135deg, var(--orbit-cosmic) 0%, var(--orbit-plum) 100%)",
+              }}
+            >
+              AD
+            </div>
 
-{/* Top Line */}
-
-<div className="
-absolute top-0 left-0 right-0 h-px
-bg-linear-to-r
-from-transparent
-via-white/10
-to-transparent
-" />
-
-{/* Background Glow */}
-
-<div className="
-absolute inset-0 pointer-events-none
-bg-[radial-gradient(ellipse_at_5%_50%,rgba(0,198,255,0.05),transparent_50%),radial-gradient(ellipse_at_95%_50%,rgba(162,89,255,0.05),transparent_50%)]
-" />
-
-
-{/* LEFT SIDE */}
-
-<div className="relative z-10 flex items-center gap-4 md:gap-6">
-
-<div className="relative">
-
-<h1 className="
-font-['Orbitron']
-text-2xl md:text-3xl
-font-black
-tracking-[4px]
-bg-linear-to-r
-from-cyan-400
-to-purple-500
-bg-clip-text
-text-transparent
-">
-ORBIT
-</h1>
-
-<div className="
-absolute inset-0
-blur-lg
-opacity-40
-bg-linear-to-r
-from-cyan-400
-to-purple-500
-bg-clip-text
-text-transparent
-">
-ORBIT
-</div>
-
-</div>
-
-
-<div className="hidden md:block w-px h-12 bg-linear-to-b from-transparent via-cyan-400/40 to-transparent" />
-
-<div>
-
-<h2 className="
-text-xs md:text-sm
-tracking-[3px]
-uppercase
-font-semibold
-text-blue-100
-">
-{title}
-</h2>
-
-<p className="
-text-[9px] md:text-[10px]
-tracking-[3px]
-uppercase
-text-blue-400
-mt-1
-">
-{subtitle}
-</p>
-
-</div>
-
-</div>
-
-
-
-{/* RIGHT SIDE */}
-
-<div className="relative z-10 flex items-center gap-4 md:gap-6 ml-auto">
-
-{/* Clock */}
-
-<div className="text-right hidden sm:block">
-
-<div className="
-font-['Orbitron']
-text-xs md:text-sm
-tracking-[2px]
-text-cyan-400
-">
-{time}
-</div>
-
-<div className="text-[9px] md:text-[10px] tracking-[2px] text-blue-400 mt-1 uppercase">
-{date}
-</div>
-
-</div>
-
-
-<div className="hidden sm:block w-px h-10 bg-linear-to-b from-transparent via-white/10 to-transparent" />
-
-
-{/* Notification Bell */}
-
-<NotificationBell />
-
-
-{/* Avatar */}
-
-<ProfilePanel />
-
-</div>
-
-</header>
-
+            <div className="hidden text-sm sm:block">
+              <p className="font-bold text-orbit-text">Admin ORBIT</p>
+              <p className="text-orbit-muted">BPS Provinsi Sulawesi Utara</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
   )
-
 }
